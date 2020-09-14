@@ -25,6 +25,6 @@ def main():
             print(c)
 
     if results:
-        export(results)
+        utils.export(results)
 
     return 0
