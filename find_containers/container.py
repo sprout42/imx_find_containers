@@ -1,6 +1,6 @@
 
 from .imx import iMXImageContainer
-from .fit import FITContainer
+#from .fit import FITContainer
 from . import utils
 
 def _find_next_unknown_addr(container_list, offset, verbose=False):

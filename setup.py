@@ -8,6 +8,6 @@ setup(
     packages=find_packages(),
 
     entry_points={
-        'console_scripts': ['find_containers=find_container:main']
+        'console_scripts': ['find_containers=find_containers:main']
     }
 )
