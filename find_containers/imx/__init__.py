@@ -1,10 +1,11 @@
 
+from ..types import ContainerABC
 from .. import utils
 from .imx_types import *
 
-class iMXImageContainer(object):
+class iMXImageContainer(ContainerABC):
     @classmethod
-    def is_container(cls, data, offset):
+    def is_container(cls, data, offset, verbose=False):
         if len(data[offset:]) > ContainerHeader.size:
             #hdr = ContainerHeader.unpack_from(data, offset)
             #if hdr.version == ContanerVersions.VERSION_0 and \
@@ -35,9 +36,7 @@ class iMXImageContainer(object):
                         offset + sig_offset <= len(data) and \
                         (num_images or sig_offset):
                     return True
-                else:
-                    #print(f'SKIP @ {offset:#x}: {hdr}')
-
+                elif verbose:
                     # Probably not a container but print a message just in case
                     print(f'SKIP @ {offset:#x}: {data[offset:offset + ContainerHeader.size].hex()}')
 
@@ -68,12 +67,8 @@ class iMXImageContainer(object):
             for i in range(start, stop, step):
                 self.images.append(self._parse_image(data, i))
 
-        # For ease of identifying which image belongs to which addresses, map
-        # them out now
-        self._image_addrs = {}
-        for img in self.images:
-            if img['range'] is not None:
-                self._image_addrs[img['range']] = img
+        # Now do any standard container init
+        super().__init__(data=data, offset=offset, verbose=verbose)
 
     def _parse_header(self, data, offset):
         assert len(data) > ContainerHeader.size
@@ -93,8 +88,6 @@ class iMXImageContainer(object):
             'revoke_mask': (self.hdr.flags & 0x00000F00) >> 8,
         }
 
-        # This is the end of the container which includes the image headers and 
-        # signature block, but does not include the images themselves
         self.end = offset + self.hdr.length
 
     def _parse_image(self, data, offset):
@@ -318,32 +311,3 @@ class iMXImageContainer(object):
         dek['key'] = data[key_offset:end]
 
         return dek
-
-    def find_image_by_addr(self, addr):
-        # If the address provided is in the address range of one of the images 
-        # in this container, the image info is returned
-        for addr_range, img in self._image_addrs.items():
-            if addr in addr_range:
-                return img
-        return None
-
-    def find_next_addr(self, addr):
-        # A utility to find the next address that is not in an image belonging 
-        # to this container
-        img = self.find_image_by_addr(addr)
-        if img is None:
-            return addr
-        else:
-            # Find the address that is at the end of the identified image, and 
-            # ensure that doesn't match any other images in this container
-            next_addr = img['range'].stop
-            return self.find_next_addr(next_addr)
-
-    def __str__(self):
-        return f'{self.offset}: {self.hdr}'
-
-    def export(self):
-        # Just flatten all of the header/namedtuple types into dicts
-        return utils._normalize_obj(self)
-
-

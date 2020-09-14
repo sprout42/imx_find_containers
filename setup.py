@@ -2,6 +2,8 @@
 
 from setuptools import setup, find_packages
 
+with open('requirements.txt') as f:
+    required = f.read().splitlines()
 
 setup(
     name='find_containers',
@@ -9,5 +11,6 @@ setup(
 
     entry_points={
         'console_scripts': ['find_containers=find_containers:main']
-    }
+    },
+    install_requires=required,
 )
