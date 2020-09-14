@@ -10,3 +10,4 @@
 #   - https://www.nxp.com/webapp/Download?colCode=IMX_CST_TOOL_NEW&location=null
 
 from .container import *
+from .main import main
