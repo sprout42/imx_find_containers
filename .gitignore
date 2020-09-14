@@ -1,2 +1,6 @@
 __pycache__/
 find_containers.egg-info/
+
+# Ignore files that are the result of testing
+*.bin
+*.yaml

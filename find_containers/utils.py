@@ -4,7 +4,7 @@ import enum
 import time
 
 from .types import StructTuple
-from .imx import imx_types
+from . import imx
 
 
 def invert(num):
@@ -47,8 +47,8 @@ def _write_yaml(filename, results):
     yaml = ruamel.yaml.YAML()
 
     # Register all of the enum classes with custom yaml export functions
-    for obj in vars(imx_types).values():
-        if isinstance(obj, enum.Enum):
+    for obj in vars(imx).values():
+        if hasattr(obj, 'to_yaml'):
             yaml.register_class(obj)
 
     # Customize how the yaml output will look
@@ -66,7 +66,7 @@ def _write_yaml(filename, results):
         for key, val in container.export().items():
             obj.append((representer.represent_data(key), representer.represent_data(val)))
         return ruamel.yaml.nodes.MappingNode(u'tag:yaml.org,2002:map', obj)
-    yaml.representer.add_representer(iMXImageContainer, container_presenter)
+    yaml.representer.add_representer(imx.iMXImageContainer, container_presenter)
 
     with open(f'{filename}.yaml', 'w') as f:
         yaml.dump(results, f)
@@ -74,7 +74,7 @@ def _write_yaml(filename, results):
 
 def _write_pickle(filename, results):
     # Some nasty private variable hacks to make these classes pickle-able
-    for obj in vars(imx_types).values():
+    for obj in vars(imx).values():
         if isinstance(obj, StructTuple):
             obj._namedtuple.__qualname__ = f'{obj._name}._namedtuple'
 

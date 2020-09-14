@@ -1,4 +1,5 @@
 
+from .. import utils
 from .imx_types import *
 
 class iMXImageContainer(object):
@@ -87,7 +88,7 @@ class iMXImageContainer(object):
 
         self.offset = offset
         self.srk = {
-            'set': enum_or_int(SRKSet, self.hdr.flags & 0x00000003),
+            'set': utils.enum_or_int(SRKSet, self.hdr.flags & 0x00000003),
             'index': (self.hdr.flags & 0x00000030) >> 2,
             'revoke_mask': (self.hdr.flags & 0x00000F00) >> 8,
         }
@@ -111,16 +112,16 @@ class iMXImageContainer(object):
             'range': None,
 
             # Flags
-            'type': enum_or_int(ImageType, hdr.flags & 0x0000000F),
-            'core_id': enum_or_int(CoreType, (hdr.flags & 0x000000F0) >> 4),
-            'hash_type': enum_or_int(HashType, (hdr.flags & 0x00000700) >> 8),
+            'type': utils.enum_or_int(ImageType, hdr.flags & 0x0000000F),
+            'core_id': utils.enum_or_int(CoreType, (hdr.flags & 0x000000F0) >> 4),
+            'hash_type': utils.enum_or_int(HashType, (hdr.flags & 0x00000700) >> 8),
             'encrypted': bool(hdr.flags & 0x00000800),
             'boot_flags': (hdr.flags & 0xFFFF0000) >> 16,
 
             # Image Metadata
-            'cpu_id': enum_or_int(CPUID, hdr.metadata & 0x000003FF),
-            'mu_id': enum_or_int(MUID, (hdr.metadata & 0x000FFC00) >> 10),
-            'partition_id': enum_or_int(PartitionID, (hdr.metadata & 0x0FF00000) >> 20),
+            'cpu_id': utils.enum_or_int(CPUID, hdr.metadata & 0x000003FF),
+            'mu_id': utils.enum_or_int(MUID, (hdr.metadata & 0x000FFC00) >> 10),
+            'partition_id': utils.enum_or_int(PartitionID, (hdr.metadata & 0x0FF00000) >> 20),
             'data': None,
         }
 
@@ -274,7 +275,7 @@ class iMXImageContainer(object):
 
         assert hdr.version == ContanerVersions.VERSION_0
         assert hdr.tag == HeaderTag.CERTIFICATE
-        assert invert(hdr.perms) == hdr.perms_inv
+        assert utils.invert(hdr.perms) == hdr.perms_inv
 
         cert = {
             'hdr': hdr,
@@ -309,7 +310,7 @@ class iMXImageContainer(object):
             'hdr': hdr,
             'offset': offset,
             'kek': bool(hdr.flags & 0x80),
-            'key_size': enum_or_int(AESKeySize, hdr.size),
+            'key_size': utils.enum_or_int(AESKeySize, hdr.size),
         }
 
         key_offset = offset + DEKHeader.size
@@ -343,6 +344,6 @@ class iMXImageContainer(object):
 
     def export(self):
         # Just flatten all of the header/namedtuple types into dicts
-        return _normalize_obj(self)
+        return utils._normalize_obj(self)
 
 
