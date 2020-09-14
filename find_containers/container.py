@@ -1,6 +1,6 @@
 
 from .imx import iMXImageContainer
-#from .fit import FITContainer
+from .fit import FITContainer
 from . import utils
 
 def _find_next_unknown_addr(container_list, offset, verbose=False):
@@ -45,10 +45,32 @@ def _find_container(data, increment=4, verbose=False):
             # TODO: I could probably make the list of containers to look for 
             # automatically populate, but my intention is not to go full binwalk 
             # with this tool.
-            if iMXImageContainer.is_container(data, offset):
+            if iMXImageContainer.is_container(data=data, offset=offset, verbose=verbose):
                 c = iMXImageContainer(data, offset, verbose=verbose)
                 offset = c.end
                 container_list.append(c)
+
+                # iMX container images may be FIT images, check now
+                for img in c.images:
+                    if FITContainer.is_container(data=img['data'], offset=0, verbose=verbose):
+                        if verbose:
+                            print(f'Extracting FIT from image @ {img["offset"]}')
+                        fit = FITContainer(data=img['data'], offset=0, verbose=verbose)
+                        fit.fix_offset(img['range'].start)
+
+                        # If the fit image uses the entire container image, set 
+                        # it's data to None
+                        if img['range'].stop == fit.end:
+                            img['data'] = None
+
+                        # Add the fit image container to the list
+                        container_list.append(fit)
+
+            elif FITContainer.is_container(data, offset):
+                c = FITContainer(data, offset, verbose=verbose)
+                offset = c.end
+                container_list.append(c)
+
             else:
                 # Incrementing by 1 will take longer, but be more thorough, the 
                 # is_container() function will ensure that container headers 

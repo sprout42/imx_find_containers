@@ -5,6 +5,7 @@ import time
 
 from .types import StructTuple
 from . import imx
+from . import fit
 
 
 def invert(num):
@@ -18,22 +19,6 @@ def enum_or_int(enum_type, num):
         return enum_type(num)
     except ValueError:
         return num
-
-
-def _normalize_obj(obj):
-    if isinstance(obj, list):
-        return [_normalize_obj(o) for o in obj]
-    elif isinstance(obj, dict):
-        return dict((k, _normalize_obj(v)) for k, v in obj.items())
-    elif hasattr(obj, '__dict__') and not isinstance(obj, enum.Enum):
-        # A standard class object
-        return dict((k, _normalize_obj(v)) for k, v in vars(obj).items() if not k.startswith('_'))
-    elif hasattr(obj, '_asdict'):
-        # A namedtuple object
-        return dict((k, _normalize_obj(v)) for k, v in obj._asdict().items() if not k.startswith('_'))
-    else:
-        # assume this is a normal value like an int or string
-        return obj
 
 
 def now():
@@ -67,6 +52,7 @@ def _write_yaml(filename, results):
             obj.append((representer.represent_data(key), representer.represent_data(val)))
         return ruamel.yaml.nodes.MappingNode(u'tag:yaml.org,2002:map', obj)
     yaml.representer.add_representer(imx.iMXImageContainer, container_presenter)
+    yaml.representer.add_representer(fit.FITContainer, container_presenter)
 
     with open(f'{filename}.yaml', 'w') as f:
         yaml.dump(results, f)
@@ -132,10 +118,20 @@ def export(results):
         for container in results[filename]:
             for img in container.images:
                 if img['data'] is not None:
-                    offset = img['offset']
-                    binname = f'{_path_to_filename(filename)}-{offset:X}.bin'
-                    with open(binname, 'wb') as f:
-                        f.write(img['data'])
+                    if 'fileext' in img:
+                        imgfilename = f'{_path_to_filename(filename)}--{offset:X}.{img["fileext"]}'
+                    else:
+                        offset = img['offset']
+                        imgfilename = f'{_path_to_filename(filename)}-{offset:X}.bin'
+
+                    # Handle writing out bytes or strings as determined by the 
+                    # image type
+                    if isinstance(img['data'], bytes):
+                        with open(imgfilename, 'wb') as f:
+                            f.write(img['data'])
+                    else:
+                        with open(imgfilename, 'w') as f:
+                            f.write(img['data'])
 
 
 def recursive_scandir(path):
