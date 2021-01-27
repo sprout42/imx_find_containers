@@ -1,7 +1,7 @@
 # Summary
 
-The `find_containers` tool helps to find i.MX containers in a binary, parses the
-header for the container which indicates (among other things) if the image is
+The `imx_find_containers` tool helps to find i.MX containers in a binary, parses 
+the header for the container which indicates (among other things) if the image is
 signed, and which processor core the image will be executed on.
 
 Adapted from info in the following NXP docs:
@@ -33,7 +33,7 @@ as both blob (dtb) and source (dts) files.
 $ ls -1
 emmc_image.bin
 
-$ find_containers emmc_image.bin
+$ imx_find_containers emmc_image.bin
 Searching emmc_image.bin
 0: ContainerHeader(version=0, length=832, tag=135, flags=2, sw_ver=0, fuse_ver=0, num_images=2, sig_offset=272)
 0: FDTHeader(magic=3490578157, totalsize=70690, off_dt_struct=56, off_dt_strings=68320, off_mem_rsvmap=40, version=17, last_comp_version=16)

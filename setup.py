@@ -6,11 +6,11 @@ with open('requirements.txt') as f:
     required = f.read().splitlines()
 
 setup(
-    name='find_containers',
+    name='imx_find_containers',
     packages=find_packages(),
 
     entry_points={
-        'console_scripts': ['find_containers=find_containers:main']
+        'console_scripts': ['imx_find_containers=imx_find_containers:main']
     },
     install_requires=required,
 )
