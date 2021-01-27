@@ -90,7 +90,7 @@ def _find_container(data, increment=4, verbose=False):
         return container_list
 
 
-def find(filename, increment=4, verbose=False):
+def find(filename, increment=4, verbose=False, **kwargs):
     with open(filename, 'rb') as f:
         data = f.read()
     return _find_container(data, increment, verbose)
