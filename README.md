@@ -4,18 +4,19 @@ The `find_containers` tool helps to find i.MX containers in a binary, parses the
 header for the container which indicates (among other things) if the image is
 signed, and which processor core the image will be executed on.
 
-Adapted from info in the followin NXP docs:
+Adapted from info in the following NXP docs:
     - IMX8DQXPRM.pdf
     - AN12056.pdf
 
-And info from following tools:
+And the following tools:
     - https://source.codeaurora.org/external/imx/uboot-imx
     - https://source.codeaurora.org/external/imx/imx-mkimage/
     - https://www.nxp.com/webapp/Download?colCode=IMX_CST_TOOL_NEW&location=null
 
 As much as I like writing tools to parse things, the
 https://github.com/superna9999/pyfdt/ python module is used to process FIT/FDT
-images.
+images because it is already written, works, and FIT/FDT parsing is a large set 
+of functionality to re-write myself for fun.
 
 # Usage
 
