@@ -27,7 +27,7 @@ def now():
     return time.strftime("%Y-%m-%dT%H:%M:%S%z", time.localtime())
 
 
-def _write_yaml(filename, results):
+def _write_yaml(filename, results, include_image_contents=False):
     import ruamel.yaml
     yaml = ruamel.yaml.YAML()
 
@@ -49,7 +49,10 @@ def _write_yaml(filename, results):
     def container_presenter(representer, container):
         obj = []
         for key, val in container.export().items():
-            obj.append((representer.represent_data(key), representer.represent_data(val)))
+            # only include the images in the scan results if the 
+            # include_image_contents flag is set
+            if key != 'images' or (key == 'images' and include_image_contents):
+                obj.append((representer.represent_data(key), representer.represent_data(val)))
         return ruamel.yaml.nodes.MappingNode(u'tag:yaml.org,2002:map', obj)
     yaml.representer.add_representer(imx.iMXImageContainer, container_presenter)
     yaml.representer.add_representer(fit.FITContainer, container_presenter)
@@ -106,32 +109,35 @@ def _path_to_filename(path):
     return filename
 
 
-def export(results):
+def export(results, include_image_contents=False, extract=False, **kwargs):
     export_filename = time.strftime("scan_results.%Y-%m-%dT%H:%M:%S%z", time.localtime())
 
     # First save the overall results
     #_write_pickle(export_filename, results)
-    _write_yaml(export_filename, results)
+    print(f'Saving scan results: {export_filename}')
+    _write_yaml(export_filename, results, include_image_contents)
 
     # Now export any image files found binwalk-style
-    for filename in results:
-        for container in results[filename]:
-            for img in container.images:
-                if img['data'] is not None:
-                    if 'fileext' in img:
-                        imgfilename = f'{_path_to_filename(filename)}--{offset:X}.{img["fileext"]}'
-                    else:
-                        offset = img['offset']
-                        imgfilename = f'{_path_to_filename(filename)}-{offset:X}.bin'
+    if extract:
+        for filename in results:
+            for container in results[filename]:
+                for img in container.images:
+                    if img['data'] is not None:
+                        if 'fileext' in img:
+                            imgfilename = f'{_path_to_filename(filename)}--{offset:X}.{img["fileext"]}'
+                        else:
+                            offset = img['offset']
+                            imgfilename = f'{_path_to_filename(filename)}-{offset:X}.bin'
 
-                    # Handle writing out bytes or strings as determined by the 
-                    # image type
-                    if isinstance(img['data'], bytes):
-                        with open(imgfilename, 'wb') as f:
-                            f.write(img['data'])
-                    else:
-                        with open(imgfilename, 'w') as f:
-                            f.write(img['data'])
+                        # Handle writing out bytes or strings as determined by the 
+                        # image type
+                        print(f'Exporting image: {imgfilename}')
+                        if isinstance(img['data'], bytes):
+                            with open(imgfilename, 'wb') as f:
+                                f.write(img['data'])
+                        else:
+                            with open(imgfilename, 'w') as f:
+                                f.write(img['data'])
 
 
 def recursive_scandir(path):
