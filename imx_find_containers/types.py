@@ -1,50 +1,186 @@
 import enum
 import struct
-from collections import namedtuple
+import functools
+import operator
+import inspect
+import abc
 
 
-class StructTuple(object):
-    def __init__(self, name, struct_str, fields):
-        self._name = name
-        self._struct = struct.Struct(struct_str)
-        self._namedtuple = namedtuple(name, ' '.join(fields))
+# To make yaml_tag in the ExportableEnum class a function instead of static
+class classproperty:
+    def __init__(self, fget=None, fset=None, fdel=None, doc=None):
+        self.fget = fget
+        self.fset = fset
+        self.fdel = fdel
+        if doc is None and fget is not None:
+            doc = fget.__doc__
+        self.__doc__ = doc
 
-    @property
-    def size(self):
-        return self._struct.size
-
-    def unpack(self, data):
-        assert len(data) == self.size
-        return self._namedtuple._make(self._struct.unpack(data))
-
-    def unpack_from(self, data, offset=0):
-        assert len(data[offset:]) >= self.size
-        return self._namedtuple._make(self._struct.unpack_from(data, offset=offset))
+    def __get__(self, instance, ownerclass):
+        return self.fget(ownerclass)
 
 
-def _normalize_obj(obj):
-    if isinstance(obj, list):
-        return [_normalize_obj(o) for o in obj]
-    elif isinstance(obj, dict):
-        return dict((k, _normalize_obj(v)) for k, v in obj.items())
-    elif hasattr(obj, '__dict__') and not isinstance(obj, enum.Enum):
-        # A standard class object
-        return dict((k, _normalize_obj(v)) for k, v in vars(obj).items() if not k.startswith('_'))
-    elif hasattr(obj, '_asdict'):
-        # A namedtuple object
-        return dict((k, _normalize_obj(v)) for k, v in obj._asdict().items() if not k.startswith('_'))
-    else:
-        # assume this is a normal value like an int or string
-        return obj
+class ExportableIntEnum(enum.IntEnum):
+    @classproperty
+    def yaml_tag(cls):
+        return f'!{cls.__name__}'
 
-
-class ContainerABC(object):
     @classmethod
+    def to_yaml(cls, representer, node):
+        enum_str = f'{node.name} ({node.value:#x})'
+        return representer.represent_scalar(cls.yaml_tag, enum_str)
+
+    @classmethod
+    def from_yaml(cls, constructor, node):
+        val_name, _ = node.value.split()
+        return cls[val_name]
+
+
+class ExportableIntFlag(enum.IntFlag):
+    @classproperty
+    def yaml_tag(cls):
+        return f'!{cls.__name__}'
+
+    @classmethod
+    def to_yaml(cls, representer, node):
+        # I'd _like_ to just have this be a straight repr(node) but that 
+        # produces a value that is very difficult to import.
+        bits = [f for f in list(cls) if f & node.value]
+        bit_name_list = '|'.join(f.name for f in bits)
+        bit_val_list = '|'.join(str(f.value) for f in bits)
+        enum_flag_str = f'{bit_name_list} ({bit_val_list})'
+        return representer.represent_scalar(cls.yaml_tag, enum_flag_str)
+
+    @classmethod
+    def from_yaml(cls, constructor, node):
+        _, values_str = node.value.split()
+        # take the numerical values between the parenthesis and combine them 
+        # into a single value
+        values_list = [int(v) for v in values_str[1:-1].split('|')]
+        value = functools.reduce(operator.ior, values_list)
+        return cls(value)
+
+
+class ExportableObject:
+    @classproperty
+    def yaml_tag(cls):
+        return f'!{cls.__name__}'
+
+    @classmethod
+    def to_yaml(cls, representer, node):
+        if hasattr(node, 'get_yaml_attrs'):
+            value = dict((a, getattr(node, a)) for a in node.get_yaml_attrs())
+        else:
+            value = dict((k, v) for k, v in vars(node).items() if not k.startswith('_'))
+        return representer.represent_mapping(cls.yaml_tag, value)
+
+    @classmethod
+    def from_yaml(cls, constructor, node):
+        data = constructor.construct_mapping(node, deep=True)
+        return cls(**data)
+
+
+class StructTupleMetaclass(ExportableObject):
+    # Placeholders, define these in subclasses
+    _struct = None
+    _fields = None
+
+    def __init__(self, *args, **kwargs):
+        # Must have some arguments
+        assert args or kwargs
+
+        if kwargs:
+            assert all(attr in kwargs for attr in self._fields)
+            for attr in self._fields:
+                setattr(self, attr, kwargs[attr])
+        else:
+            # We just assume the args are in the proper order
+            assert len(args) == len(self._fields)
+            for attr, arg in zip(self._fields, args):
+                setattr(self, attr, arg)
+
+    @classproperty
+    def size(cls):
+        return cls._struct.size
+
+    @classmethod
+    def unpack(cls, data):
+        assert len(data) == cls.size
+        return cls(*cls._struct.unpack(data))
+
+    @classmethod
+    def unpack_from(cls, data, offset=0):
+        assert len(data[offset:]) >= cls.size
+        return cls(*cls._struct.unpack_from(data, offset=offset))
+
+    def __repr__(self):
+        attrs = []
+        for key in self._fields:
+            try:
+                attrs.append(hex(getattr(self, key)))
+            except TypeError:
+                # must be bytes
+                attrs.append(repr(getattr(self, key)))
+        param_str = ', '.join(attrs)
+        return f'{self.__class__.__name__}({param_str})'
+
+
+def StructTuple(name, fmt, fields):
+    args = {
+        '_struct': struct.Struct(fmt),
+        '_fields': fields,
+    }
+    return type(name, (StructTupleMetaclass,), args)
+
+
+class ContainerABC(ExportableObject, abc.ABC):
+    @classmethod
+    @abc.abstractmethod
     def is_container(cls, data, offset, verbose=False):
         raise NotImplementedError
 
-    def __init__(self, data, offset, verbose=False):
-        # Any container-specific data processing should happen before this 
+    def __init__(self, data=None, offset=0, export_images=False, verbose=False, **kwargs):
+        assert data or kwargs
+
+        # This option defines whether or not any "images" are included in a yaml 
+        # export
+        self._export_images = export_images
+
+        self._verbose = verbose
+        self.offset = offset
+
+        if data is not None:
+            self.init_from_data(data, offset)
+        else:
+            # Recreating a loaded object, probably from a scan results file.  
+            # each key=value pair is an attribute and value that should be set
+            for key, value in kwargs.items():
+                setattr(self, key, value)
+
+            # If there are any images in the data that was set, sort out the 
+            # image address mapping now.
+            self.map_images_by_addr()
+
+    @property
+    def export_images(self):
+        return self._export_images
+
+    @export_images.setter
+    def export_images(self, value):
+        self._export_images = value
+
+    def get_yaml_attrs(self):
+        if self.export_images:
+            return (k for k in vars(self).keys() if not k.startswith('_'))
+        else:
+            return (k for k in vars(self).keys() if not k.startswith('_') and k != 'images')
+
+    @abc.abstractmethod
+    def init_from_data(self, data, offset):
+        raise NotImplementedError
+
+    def map_images_by_addr(self):
+        # Any container-specific data processing should happen before this
         # function is called
 
         # For ease of identifying which image belongs to which addresses, map
@@ -75,9 +211,17 @@ class ContainerABC(object):
             next_addr = img['range'].stop
             return self.find_next_addr(next_addr)
 
-    def __str__(self):
-        return f'{self.offset:#x}: {self.hdr}'
+    def __repr__(self):
+        if hasattr(self, 'hdr'):
+            param_str = repr(self.hdr)
+        else:
+            param_str = 'None'
 
-    def export(self):
+        return f'{self.__class__.__name__}({param_str})'
+
+    def __str__(self):
+        return f'{self.offset:#08x}: {repr(self)}'
+
+    def export(self, include_image_contents=False):
         # Just flatten all of the header/namedtuple types into dicts
-        return _normalize_obj(self)
+        return _normalize_obj(self, include_image_contents)

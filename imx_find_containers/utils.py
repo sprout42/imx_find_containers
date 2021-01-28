@@ -3,6 +3,14 @@ import os
 import enum
 import time
 
+# pickle is the backup results saving option
+import pickle
+try:
+    import ruamel.yaml
+    _use_yaml = True
+except ImportError:
+    _use_yaml = False
+
 from .types import StructTuple
 from . import imx
 from . import fit
@@ -27,13 +35,16 @@ def now():
     return time.strftime("%Y-%m-%dT%H:%M:%S%z", time.localtime())
 
 
-def _write_yaml(filename, results, include_image_contents=False):
-    import ruamel.yaml
+def _write_yaml(filename, results):
     yaml = ruamel.yaml.YAML()
 
     # Register all of the enum classes with custom yaml export functions
     for obj in vars(imx).values():
-        if hasattr(obj, 'to_yaml'):
+        if hasattr(obj, 'yaml_tag'):
+            yaml.register_class(obj)
+
+    for obj in vars(fit).values():
+        if hasattr(obj, 'yaml_tag'):
             yaml.register_class(obj)
 
     # Customize how the yaml output will look
@@ -46,56 +57,63 @@ def _write_yaml(filename, results, include_image_contents=False):
         return representer.represent_scalar('!range', range_str)
     yaml.representer.add_representer(range, range_presenter)
 
-    def container_presenter(representer, container):
-        obj = []
-        for key, val in container.export().items():
-            # only include the images in the scan results if the 
-            # include_image_contents flag is set
-            if key != 'images' or (key == 'images' and include_image_contents):
-                obj.append((representer.represent_data(key), representer.represent_data(val)))
-        return ruamel.yaml.nodes.MappingNode(u'tag:yaml.org,2002:map', obj)
-    yaml.representer.add_representer(imx.iMXImageContainer, container_presenter)
-    yaml.representer.add_representer(fit.FITContainer, container_presenter)
-
-    with open(f'{filename}.yaml', 'w') as f:
+    full_filename = f'{filename}.yaml'
+    print(f'Saving scan results: {full_filename}')
+    with open(full_filename, 'w') as f:
         yaml.dump(results, f)
 
 
 def _write_pickle(filename, results):
-    # Some nasty private variable hacks to make these classes pickle-able
-    for obj in vars(imx).values():
-        if isinstance(obj, StructTuple):
-            obj._namedtuple.__qualname__ = f'{obj._name}._namedtuple'
-
-    import pickle
-    with open(f'{filename}.pickle', 'wb') as f:
+    full_filename = f'{filename}.pickle'
+    print(f'Saving scan results: {full_filename}')
+    with open(full_filename, 'wb') as f:
         pickle.dump(results, f)
 
 
-def _open_yaml(filename):
-    # ruamel.yaml works better with python3, but PyYAML should work ok as well 
-    # for this
-    try:
-        import ruamel.yaml as yaml
-    except ImportError:
-        import yaml
+def save_results(filename, results):
+    if _use_yaml:
+        _write_yaml(filename, results)
+    else:
+        # If the yaml package was not able to be loaded use pickle instead
+        _write_pickle(filename, results)
 
-    try:
-        from yaml import CLoader as yamlLoader
-    except ImportError:
-        from yaml import Loader as yamlLoader
+
+def _open_yaml(filename):
+    # Use the "unsafe" loader so we get sane and easy to parse types from 
+    # loading a doc
+    yaml = ruamel.yaml.YAML(typ='unsafe')
+
+    # Register all of the enum classes with custom yaml import functions
+    for obj in vars(imx).values():
+        if hasattr(obj, 'yaml_tag'):
+            yaml.register_class(obj)
+
+    for obj in vars(fit).values():
+        if hasattr(obj, 'yaml_tag'):
+            yaml.register_class(obj)
+
+    # The custom range output also has to be handled
+    def range_constructor(constructor, node):
+        # The output in _write_yaml() is:
+        #   (start, stop, step)
+        # where the values are all base16
+        #
+        # Get the values in between the parenthesis and make a new range object
+        start, stop, step = [int(v, 16) for v in node.value[1:-1].split(', ')]
+        return range(start, stop, step)
+    yaml.constructor.add_constructor('!range', range_constructor)
 
     with open(filename, 'r') as f:
-        return yaml.load(f, Loader=yamlLoader)
+        return yaml.load(f)
 
 
 def _open_pickle(filename):
-    import pickle
     with open(filename, 'rb') as f:
         return pickle.load(f)
 
 
 def open_results(filename):
+    # The results being opened may be a yaml or a pickle
     try:
         return _open_pickle(filename)
     except pickle.UnpicklingError:
@@ -110,12 +128,15 @@ def _path_to_filename(path):
 
 
 def export(results, include_image_contents=False, extract=False, **kwargs):
+    # First save the overall results
     export_filename = time.strftime("scan_results.%Y-%m-%dT%H:%M:%S%z", time.localtime())
 
-    # First save the overall results
-    #_write_pickle(export_filename, results)
-    print(f'Saving scan results: {export_filename}')
-    _write_yaml(export_filename, results, include_image_contents)
+    # Update the export_images flag in each container to indicate if they should 
+    # be included in any exported results or not
+    for filename in results:
+        for container in results[filename]:
+            container.export_images = include_image_contents
+    save_results(export_filename, results)
 
     # Now export any image files found binwalk-style
     if extract:

@@ -1,19 +1,13 @@
 import enum
+from ..types import StructTuple, ExportableIntEnum, ExportableIntFlag
 
-from ..types import StructTuple
 
-
-class ContanerVersions(enum.IntEnum):
+class ContanerVersions(ExportableIntEnum):
     VERSION_0 = 0x00
     SRK_TABLE_VERSION = 0x42
 
-    @classmethod
-    def to_yaml(cls, representer, node):
-        enum_str = f'{__class__.__name__}.{node.name} ({node.value:#x})'
-        return representer.represent_scalar('!enum.IntEnum', enum_str)
 
-
-class HeaderTag(enum.IntEnum):
+class HeaderTag(ExportableIntEnum):
     DEK = 0x81
     CONTAINER = 0x87
     MESSAGE = 0x89
@@ -23,24 +17,14 @@ class HeaderTag(enum.IntEnum):
     SIGNATURE = 0xD8
     SRK = 0xE1
 
-    @classmethod
-    def to_yaml(cls, representer, node):
-        enum_str = f'{__class__.__name__}.{node.name} ({node.value:#x})'
-        return representer.represent_scalar('!enum.IntEnum', enum_str)
 
-
-class SRKSet(enum.IntEnum):
+class SRKSet(ExportableIntEnum):
     NOAUTH = 0x00
     NXP = 0x01
     OEM = 0x02
 
-    @classmethod
-    def to_yaml(cls, representer, node):
-        enum_str = f'{__class__.__name__}.{node.name} ({node.value:#x})'
-        return representer.represent_scalar('!enum.IntEnum', enum_str)
 
-
-class ImageType(enum.IntEnum):
+class ImageType(ExportableIntEnum):
     CSF = 0x01
     SCD = 0x02
     EXE = 0x03
@@ -54,58 +38,33 @@ class ImageType(enum.IntEnum):
     V2X_ROM = 0x0D
     V2X_DUMMY = 0x0E
 
-    @classmethod
-    def to_yaml(cls, representer, node):
-        enum_str = f'{__class__.__name__}.{node.name} ({node.value:#x})'
-        return representer.represent_scalar('!enum.IntEnum', enum_str)
 
-
-class CPUID(enum.IntEnum):
+class CPUID(ExportableIntEnum):
     SC_R_A35_0 = 508
     SC_R_A53_0 = 1
     SC_R_A72_0 = 6
     SC_R_M4_0_PID0 = 278
     SC_R_M4_1_PID0 = 298
 
-    @classmethod
-    def to_yaml(cls, representer, node):
-        enum_str = f'{__class__.__name__}.{node.name} ({node.value:#x})'
-        return representer.represent_scalar('!enum.IntEnum', enum_str)
 
-
-class MUID(enum.IntEnum):
+class MUID(ExportableIntEnum):
     SC_R_MU_0A = 213
     SC_R_M4_0_MU_1A = 297
     SC_R_M4_1_MU_1A = 317
 
-    @classmethod
-    def to_yaml(cls, representer, node):
-        enum_str = f'{__class__.__name__}.{node.name} ({node.value:#x})'
-        return representer.represent_scalar('!enum.IntEnum', enum_str)
 
-
-class PartitionID(enum.IntEnum):
+class PartitionID(ExportableIntEnum):
     PARTITION_ID_M4 = 0
     PARTITION_ID_AP = 1
 
-    @classmethod
-    def to_yaml(cls, representer, node):
-        enum_str = f'{__class__.__name__}.{node.name} ({node.value:#x})'
-        return representer.represent_scalar('!enum.IntEnum', enum_str)
 
-
-class HashType(enum.IntEnum):
+class HashType(ExportableIntEnum):
     SHA2_256 = 0x00
     SHA2_384 = 0x01
     SHA2_512 = 0x02
 
-    @classmethod
-    def to_yaml(cls, representer, node):
-        enum_str = f'{__class__.__name__}.{node.name} ({node.value:#x})'
-        return representer.represent_scalar('!enum.IntEnum', enum_str)
 
-
-class CoreType(enum.IntEnum):
+class CoreType(ExportableIntEnum):
     SC = 0x01
     CM4_0 = 0x02
     CM4_1 = 0x03
@@ -115,84 +74,45 @@ class CoreType(enum.IntEnum):
     V2X_P = 0x09
     V2X_S = 0x0A
 
-    @classmethod
-    def to_yaml(cls, representer, node):
-        enum_str = f'{__class__.__name__}.{node.name} ({node.value:#x})'
-        return representer.represent_scalar('!enum.IntEnum', enum_str)
 
-
-class AlgType(enum.IntEnum):
+class AlgType(ExportableIntEnum):
     RSA = 0x21
     ECDSA = 0x27
 
-    @classmethod
-    def to_yaml(cls, representer, node):
-        enum_str = f'{__class__.__name__}.{node.name} ({node.value:#x})'
-        return representer.represent_scalar('!enum.IntEnum', enum_str)
 
-
-class ECDSACurve(enum.IntEnum):
+class ECDSACurve(ExportableIntEnum):
     PRIME256V1 = 0x01
     SEC348R1 = 0x02
     SEC521R1 = 0x03
 
-    @classmethod
-    def to_yaml(cls, representer, node):
-        enum_str = f'{__class__.__name__}.{node.name} ({node.value:#x})'
-        return representer.represent_scalar('!enum.IntEnum', enum_str)
 
-
-class AESKeySize(enum.IntEnum):
+class AESKeySize(ExportableIntEnum):
     AES128 = 0x10
     AES192 = 0x18
     AES256 = 0x20
 
-    @classmethod
-    def to_yaml(cls, representer, node):
-        enum_str = f'{__class__.__name__}.{node.name} ({node.value:#x})'
-        return representer.represent_scalar('!enum.IntEnum', enum_str)
 
-
-class EncryptionAlg(enum.IntEnum):
+class EncryptionAlg(ExportableIntEnum):
     AES = 0x55
 
-    @classmethod
-    def to_yaml(cls, representer, node):
-        enum_str = f'{__class__.__name__}.{node.name} ({node.value:#x})'
-        return representer.represent_scalar('!enum.IntEnum', enum_str)
 
-
-class EncryptionMode(enum.IntEnum):
+class EncryptionMode(ExportableIntEnum):
     CBC = 0x66
 
-    @classmethod
-    def to_yaml(cls, representer, node):
-        enum_str = f'{__class__.__name__}.{node.name} ({node.value:#x})'
-        return representer.represent_scalar('!enum.IntEnum', enum_str)
 
-
-class RSAKeySize(enum.IntEnum):
+class RSAKeySize(ExportableIntEnum):
     RSA2048 = 0x05
     RSA3072 = 0x06
     RSA4096 = 0x07
 
-    @classmethod
-    def to_yaml(cls, representer, node):
-        enum_str = f'{__class__.__name__}.{node.name} ({node.value:#x})'
-        return representer.represent_scalar('!enum.IntEnum', enum_str)
 
-
-class CertPermissions(enum.IntFlag):
+class CertPermissions(ExportableIntFlag):
     CONTAINER_SIGNING = 1 << 0
     SCU_DEBUG         = 1 << 1
     CM4_DEBUG         = 1 << 2
     APP_DEBUG         = 1 << 2  # Also VPU Debug
     FUSE_1            = 1 << 4  # SCU Version, Lifecycle
     FUSE_2            = 1 << 5  # Monotonic Counter
-
-    @classmethod
-    def to_yaml(cls, representer, node):
-        return representer.represent_scalar('!enum.IntFlag', repr(node))
 
 
 # NXP tools say that the max images per container should be 8

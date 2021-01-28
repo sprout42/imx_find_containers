@@ -27,13 +27,10 @@ def main():
         if containers:
             results[item] = containers
 
-        # If the verbose flag is on make it clear that we are printing the 
-        # results for this file
         if args.verbose:
             print('\nFound:')
-
-        for c in containers:
-            print(c)
+            for c in containers:
+                print(c)
 
     if results:
         utils.export(results, **vars(args))
