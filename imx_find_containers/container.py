@@ -54,7 +54,7 @@ def _find_container(data, increment=4, verbose=False):
                 for img in c.images:
                     if FITContainer.is_container(data=img['data'], offset=0, verbose=verbose):
                         if verbose:
-                            print(f'Extracting FIT from image @ {img["offset"]}')
+                            print(f'Extracting FIT from image @ {img["offset"]:#x}')
                         fit = FITContainer(data=img['data'], offset=0, verbose=verbose)
                         fit.fix_offset(img['range'].start)
 

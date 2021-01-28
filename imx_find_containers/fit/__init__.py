@@ -1,4 +1,3 @@
-
 import io
 import struct
 
@@ -17,11 +16,7 @@ class FITContainer(ContainerABC):
         magic, size = struct.unpack_from('>II', data[offset:])
         return magic == 0xD00DFEED and len(data) >= size
 
-
-    def __init__(self, data, offset, verbose=False):
-        self._verbose = verbose
-        self.offset = offset
-
+    def init_from_data(self, data, offset):
         # It isn't strictly necessary to parse the header here since the pyfdt 
         # module will parse the entire FDT for us, but this will allow the scan 
         # results entry to be more meaningful
@@ -41,9 +36,8 @@ class FITContainer(ContainerABC):
             {'range': imgrange, 'fileext': f'dts', 'data': dts},
         ]
 
-        # Now do any standard container init
-        super().__init__(data=data, offset=offset, verbose=verbose)
-
+        # Now do standard image/addr mapping
+        self.map_images_by_addr()
 
     def fix_offset(self, offset):
         # FIT images can be in other images, so this function allows correcting 

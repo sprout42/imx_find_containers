@@ -1,4 +1,3 @@
-
 from ..types import ContainerABC
 from .. import utils
 from .imx_types import *
@@ -42,9 +41,7 @@ class iMXImageContainer(ContainerABC):
 
         return False
 
-    def __init__(self, data, offset, verbose=False):
-        self._verbose = verbose
-
+    def init_from_data(self, data, offset):
         assert isinstance(data, bytes)
         self._parse_header(data, offset)
 
@@ -67,8 +64,8 @@ class iMXImageContainer(ContainerABC):
             for i in range(start, stop, step):
                 self.images.append(self._parse_image(data, i))
 
-        # Now do any standard container init
-        super().__init__(data=data, offset=offset, verbose=verbose)
+        # Now do standard image/addr mapping
+        self.map_images_by_addr()
 
     def _parse_header(self, data, offset):
         assert len(data) > ContainerHeader.size
