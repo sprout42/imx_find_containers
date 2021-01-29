@@ -66,7 +66,6 @@ class iMXImageContainer(ContainerABC):
         assert len(data) > ContainerHeader.size
         if self._verbose:
             print(f'@ {offset:#x}: HDR {data[offset:offset+16].hex()}')
-        print(data[0:10], offset)
         self.hdr = ContainerHeader(data, offset)
         if self._verbose:
             print(self.hdr)

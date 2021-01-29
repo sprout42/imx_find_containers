@@ -80,43 +80,45 @@ class ExportableObject:
         return cls(**data)
 
 
-class StructTuple(ExportableObject, type):
+class StructTuple(type):
     def __new__(metacls, cls, bases, classdict):
         _struct = struct.Struct(classdict.pop('fmt'))
         _fields = classdict.pop('fields')
         classdict['_struct'] = _struct
         classdict['_fields'] = _fields
         classdict['size'] = _struct.size
-        classdict['__init__'] = metacls.__newtype_init__
-        classdict['__repr__'] = metacls.__newtype_repr__
 
-        newtyp = super().__new__(metacls, cls, bases, classdict)
+        def __newtype_init__(self, data=None, offset=0, **kwargs):
+            # Must have some arguments
+            assert data is not None or kwargs
+
+            if data is not None:
+                assert len(data[offset:]) >= self.size
+                unpacked = self._struct.unpack_from(data, offset=offset)
+                for attr, arg in zip(self._fields, unpacked):
+                    setattr(self, attr, arg)
+            elif kwargs:
+                assert all(attr in kwargs for attr in self._fields)
+                for attr in self._fields:
+                    setattr(self, attr, kwargs[attr])
+        classdict['__init__'] = __newtype_init__
+
+        def __newtype_repr__(self):
+            attrs = []
+            for key in self._fields:
+                try:
+                    attrs.append(hex(getattr(self, key)))
+                except TypeError:
+                    # must be bytes
+                    attrs.append(repr(getattr(self, key)))
+            param_str = ', '.join(attrs)
+            return f'{self.__class__.__name__}({param_str})'
+        classdict['__repr__'] = __newtype_repr__
+
+        newtyp_bases = (ExportableObject,) + bases
+
+        newtyp = super().__new__(metacls, cls, newtyp_bases, classdict)
         return newtyp
-
-    def __newtype_init__(self, data=None, offset=0, **kwargs):
-        # Must have some arguments
-        assert data is not None or kwargs
-
-        if data is not None:
-            assert len(data[offset:]) >= self.size
-            unpacked = self._struct.unpack_from(data, offset=offset)
-            for attr, arg in zip(self._fields, unpacked):
-                setattr(self, attr, arg)
-        elif kwargs:
-            assert all(attr in kwargs for attr in self._fields)
-            for attr in self._fields:
-                setattr(self, attr, kwargs[attr])
-
-    def __newtype_repr__(self):
-        attrs = []
-        for key in self._fields:
-            try:
-                attrs.append(hex(getattr(self, key)))
-            except TypeError:
-                # must be bytes
-                attrs.append(repr(getattr(self, key)))
-        param_str = ', '.join(attrs)
-        return f'{self.__class__.__name__}({param_str})'
 
 
 class ContainerABC(ExportableObject, abc.ABC):
