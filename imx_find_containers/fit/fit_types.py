@@ -1,4 +1,3 @@
-
 from ..types import StructTuple
 
 
@@ -6,3 +5,8 @@ from ..types import StructTuple
 FDTHeader = StructTuple('FDTHeader', '>IIIIIII', [
     'magic', 'totalsize', 'off_dt_struct', 'off_dt_strings', 'off_mem_rsvmap', 'version', 'last_comp_version',
 ])
+
+
+__all__ = [
+    'FDTHeader',
+]

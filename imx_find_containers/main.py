@@ -17,6 +17,8 @@ def main():
             help='Include contents of identified containers in the scan results file (increases time it takes to save scan results)')
     parser.add_argument('--extract', '-e', action='store_true',
             help='Extract the contents of any identified containers')
+    parser.add_argument('--output-format', '-o', default='auto', choices=['auto', 'yaml', 'pickle'],
+            help='Select if the scan results should be saved as a yaml or pickle')
     args = parser.parse_args()
 
     results = {}
@@ -33,6 +35,12 @@ def main():
                 print(c)
 
     if results:
+        print(vars(args))
         utils.export(results, **vars(args))
 
     return 0
+
+
+__all__ = [
+    'main',
+]
