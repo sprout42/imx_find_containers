@@ -46,7 +46,6 @@ class iMXImageContainer(ContainerABC):
         self._parse_header(data, offset)
 
         self.sigblock = None
-        self.images = None
 
         if self.hdr.sig_offset:
             self._parse_sig_block(data, offset + self.hdr.sig_offset)
@@ -56,7 +55,6 @@ class iMXImageContainer(ContainerABC):
             assert not self.hdr.num_images
 
         if self.hdr.num_images:
-            self.images = []
             start = offset + ContainerHeader.size
             step = ImageHeader.size
             stop = start + (step * self.hdr.num_images)
