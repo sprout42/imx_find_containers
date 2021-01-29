@@ -19,7 +19,7 @@ class FITContainer(ContainerABC):
         # It isn't strictly necessary to parse the header here since the pyfdt 
         # module will parse the entire FDT for us, but this will allow the scan 
         # results entry to be more meaningful
-        self.hdr = FDTHeader.unpack_from(data, offset)
+        self.hdr = FDTHeader(data, offset)
 
         self.end = offset + self.hdr.totalsize
         imgrange = range(offset, self.end)

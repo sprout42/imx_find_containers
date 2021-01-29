@@ -2,8 +2,8 @@ import enum
 import struct
 import functools
 import operator
-import inspect
 import abc
+import types
 
 
 # To make yaml_tag in the ExportableEnum class a function instead of static
@@ -80,40 +80,34 @@ class ExportableObject:
         return cls(**data)
 
 
-class StructTupleMetaclass(ExportableObject):
-    # Placeholders, define these in subclasses
-    _struct = None
-    _fields = None
+class StructTuple(ExportableObject, type):
+    def __new__(metacls, cls, bases, classdict):
+        _struct = struct.Struct(classdict.pop('fmt'))
+        _fields = classdict.pop('fields')
+        classdict['_struct'] = _struct
+        classdict['_fields'] = _fields
+        classdict['size'] = _struct.size
+        classdict['__init__'] = metacls.__newtype_init__
+        classdict['__repr__'] = metacls.__newtype_repr__
 
-    def __init__(self, *args, **kwargs):
+        newtyp = super().__new__(metacls, cls, bases, classdict)
+        return newtyp
+
+    def __newtype_init__(self, data=None, offset=0, **kwargs):
         # Must have some arguments
-        assert args or kwargs
+        assert data is not None or kwargs
 
-        if kwargs:
+        if data is not None:
+            assert len(data[offset:]) >= self.size
+            unpacked = self._struct.unpack_from(data, offset=offset)
+            for attr, arg in zip(self._fields, unpacked):
+                setattr(self, attr, arg)
+        elif kwargs:
             assert all(attr in kwargs for attr in self._fields)
             for attr in self._fields:
                 setattr(self, attr, kwargs[attr])
-        else:
-            # We just assume the args are in the proper order
-            assert len(args) == len(self._fields)
-            for attr, arg in zip(self._fields, args):
-                setattr(self, attr, arg)
 
-    @classproperty
-    def size(cls):
-        return cls._struct.size
-
-    @classmethod
-    def unpack(cls, data):
-        assert len(data) == cls.size
-        return cls(*cls._struct.unpack(data))
-
-    @classmethod
-    def unpack_from(cls, data, offset=0):
-        assert len(data[offset:]) >= cls.size
-        return cls(*cls._struct.unpack_from(data, offset=offset))
-
-    def __repr__(self):
+    def __newtype_repr__(self):
         attrs = []
         for key in self._fields:
             try:
@@ -123,14 +117,6 @@ class StructTupleMetaclass(ExportableObject):
                 attrs.append(repr(getattr(self, key)))
         param_str = ', '.join(attrs)
         return f'{self.__class__.__name__}({param_str})'
-
-
-def StructTuple(name, fmt, fields):
-    args = {
-        '_struct': struct.Struct(fmt),
-        '_fields': fields,
-    }
-    return type(name, (StructTupleMetaclass,), args)
 
 
 class ContainerABC(ExportableObject, abc.ABC):

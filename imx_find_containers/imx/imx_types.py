@@ -124,49 +124,67 @@ MAX_CONTAINER_SIZE = 8192
 
 
 # All multi-byte fields are stored little-endian
-Header = StructTuple('Header', '<BHB', [
-    'version', 'length', 'tag',
-])
+class Header(metaclass=StructTuple):
+    fmt = '<BHB'
+    fields = [
+        'version', 'length', 'tag',
+    ]
 
 
-ContainerHeader = StructTuple('ContainerHeader', '<BHBIHBBI', [
-    'version', 'length', 'tag', 'flags', 'sw_ver', 'fuse_ver', 'num_images', 'sig_offset',
-])
+class ContainerHeader(metaclass=StructTuple):
+    fmt = '<BHBIHBBI'
+    fields = [
+        'version', 'length', 'tag', 'flags', 'sw_ver', 'fuse_ver', 'num_images', 'sig_offset',
+    ]
 
 
-ImageHeader = StructTuple('ImageHeader', '<IIQQII64s32s', [
-    'offset', 'size', 'dest', 'entry', 'flags', 'metadata', 'hash', 'iv',
-])
+class ImageHeader(metaclass=StructTuple):
+    fmt = '<IIQQII64s32s'
+    fields = [
+        'offset', 'size', 'dest', 'entry', 'flags', 'metadata', 'hash', 'iv',
+    ]
 
 
-SignatureBlock = StructTuple('SignatureBlock', '<BHBHHHH', [
-    'version', 'length', 'tag', 'cert_offset', 'srk_table_offset', 'sig_offset', 'dek_offset',
-])
+class SignatureBlock(metaclass=StructTuple):
+    fmt = '<BHBHHHH'
+    fields = [
+        'version', 'length', 'tag', 'cert_offset', 'srk_table_offset', 'sig_offset', 'dek_offset',
+    ]
 
 
-CertificateHeader = StructTuple('CertificateHeader', '<BHBHBB', [
-    'version', 'length', 'tag', 'sig_offset', 'perms_inv', 'perms',
-])
+class CertificateHeader(metaclass=StructTuple):
+    fmt = '<BHBHBB'
+    fields = [
+        'version', 'length', 'tag', 'sig_offset', 'perms_inv', 'perms',
+    ]
 
 
-SignatureHeader = StructTuple('SignatureHeader', '<BHB4x', [
-    'version', 'length', 'tag',
-])
+class SignatureHeader(metaclass=StructTuple):
+    fmt = '<BHB4x'
+    fields = [
+        'version', 'length', 'tag',
+    ]
 
 
-DEKHeader = StructTuple('DEKHeader', '<BHBBBBB', [
-    'version', 'length', 'tag', 'flags', 'size', 'alg', 'mode',
-])
+class DEKHeader(metaclass=StructTuple):
+    fmt = '<BHBBBBB'
+    fields = [
+        'version', 'length', 'tag', 'flags', 'size', 'alg', 'mode',
+    ]
 
 
-SRKTable = StructTuple('SRKTable', '<BHB', [
-    'tag', 'length', 'version',
-])
+class SRKTable(metaclass=StructTuple):
+    fmt = '<BHB'
+    fields = [
+        'tag', 'length', 'version',
+    ]
 
 
-SRKRecordHeader = StructTuple('SRKRecordHeader', '<BHBBBBxHH', [
-    'tag', 'length', 'alg', 'hash', 'key_size', 'flags', 'mod_len', 'exp_len',
-])
+class SRKRecordHeader(metaclass=StructTuple):
+    fmt = '<BHBBBBxHH'
+    fields = [
+        'tag', 'length', 'alg', 'hash', 'key_size', 'flags', 'mod_len', 'exp_len',
+    ]
 
 
 __all__ = [
@@ -186,6 +204,8 @@ __all__ = [
     'EncryptionMode',
     'RSAKeySize',
     'CertPermissions',
+    'MAX_IMAGES_PER_CONTAINER',
+    'MAX_CONTAINER_SIZE',
     'Header',
     'ContainerHeader',
     'ImageHeader',

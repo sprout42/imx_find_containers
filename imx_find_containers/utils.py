@@ -11,7 +11,6 @@ try:
 except ImportError:
     _use_yaml = False
 
-from .types import StructTuple
 from . import imx
 from . import fit
 
@@ -130,9 +129,9 @@ def save_results(results, output_format=None, include_image_contents=False, extr
             container.export_images = include_image_contents
 
     if output_format == 'pickle' or not _use_yaml:
-        _write_pickle(filename, results)
+        _write_pickle(export_filename, results)
     else:
-        _write_yaml(filename, results)
+        _write_yaml(export_filename, results)
 
     # Now export any image files found binwalk-style
     if extract:
