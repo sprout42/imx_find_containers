@@ -148,6 +148,7 @@ class ContainerABC(ExportableObject, abc.ABC):
 
         self._verbose = verbose
         self.offset = offset
+        self.images = []
 
         if data is not None:
             self.init_from_data(data, offset)
@@ -160,6 +161,19 @@ class ContainerABC(ExportableObject, abc.ABC):
             # If there are any images in the data that was set, sort out the 
             # image address mapping now.
             self.map_images_by_addr()
+
+    def __iter__(self):
+        # Make it easy to iterate over the available info in a container, the 
+        # iterator returns a list of properties that can be accessed.
+        return (a for a in vars(self) if not a.startswith('_'))
+
+    def __getitem__(self, key):
+        # Allow accessing container attributes like a dictionary but only 
+        # non-hidden properties to match the keys returned by the __iter__ 
+        # function.
+        if key not in iter(self):
+            raise KeyError
+        return getattr(self, key)
 
     @property
     def export_images(self):
@@ -186,10 +200,9 @@ class ContainerABC(ExportableObject, abc.ABC):
         # For ease of identifying which image belongs to which addresses, map
         # them out now
         self._image_addrs = {}
-        if self.images is not None:
-            for img in self.images:
-                if img['range'] is not None:
-                    self._image_addrs[img['range']] = img
+        for img in self.images:
+            if img['range'] is not None:
+                self._image_addrs[img['range']] = img
 
     def find_image_by_addr(self, addr):
         # If the address provided is in the address range of one of the images 
