@@ -7,10 +7,6 @@ class iMXImageContainer(ContainerABC):
     @classmethod
     def is_container(cls, data, offset, verbose=False):
         if len(data[offset:]) > ContainerHeader.size:
-            #hdr = ContainerHeader.unpack_from(data, offset)
-            #if hdr.version == ContanerVersions.VERSION_0 and \
-            #        hdr.tag in (HeaderTag.CONTAINER, HeaderTag.MESSAGE):
-
             # use the raw byte values for the first level check to speed this up
             if data[offset] == ContanerVersions.VERSION_0 and \
                     data[offset + 3] in (HeaderTag.CONTAINER, HeaderTag.MESSAGE):
@@ -70,7 +66,8 @@ class iMXImageContainer(ContainerABC):
         assert len(data) > ContainerHeader.size
         if self._verbose:
             print(f'@ {offset:#x}: HDR {data[offset:offset+16].hex()}')
-        self.hdr = ContainerHeader.unpack_from(data, offset)
+        print(data[0:10], offset)
+        self.hdr = ContainerHeader(data, offset)
         if self._verbose:
             print(self.hdr)
 
@@ -89,7 +86,7 @@ class iMXImageContainer(ContainerABC):
     def _parse_image(self, data, offset):
         if self._verbose:
             print(f'@ {offset:#x}: IMG {data[offset:offset+16].hex()}')
-        hdr = ImageHeader.unpack_from(data, offset)
+        hdr = ImageHeader(data, offset)
         if self._verbose:
             print(hdr)
 
@@ -145,7 +142,7 @@ class iMXImageContainer(ContainerABC):
     def _parse_sig_block(self, data, offset):
         if self._verbose:
             print(f'@ {offset:#x}: BLK {data[offset:offset+16].hex()}')
-        hdr = SignatureBlock.unpack_from(data, offset)
+        hdr = SignatureBlock(data, offset)
         if self._verbose:
             print(hdr)
 
@@ -170,7 +167,7 @@ class iMXImageContainer(ContainerABC):
     def _parse_srk_table(self, data, offset):
         if self._verbose:
             print(f'@ {offset:#x}: TBL {data[offset:offset+16].hex()}')
-        hdr = SRKTable.unpack_from(data, offset)
+        hdr = SRKTable(data, offset)
         if self._verbose:
             print(hdr)
 
@@ -197,7 +194,7 @@ class iMXImageContainer(ContainerABC):
     def _parse_srk(self, data, offset):
         if self._verbose:
             print(f'@ {offset:#x}: SRK {data[offset:offset+16].hex()}')
-        hdr = SRKRecordHeader.unpack_from(data, offset)
+        hdr = SRKRecordHeader(data, offset)
         if self._verbose:
             print(hdr)
 
@@ -237,7 +234,7 @@ class iMXImageContainer(ContainerABC):
     def _parse_sig(self, data, offset):
         if self._verbose:
             print(f'@ {offset:#x}: SIG {data[offset:offset+16].hex()}')
-        hdr = SignatureHeader.unpack_from(data, offset)
+        hdr = SignatureHeader(data, offset)
         if self._verbose:
             print(hdr)
 
@@ -258,7 +255,7 @@ class iMXImageContainer(ContainerABC):
     def _parse_cert(self, data, offset):
         if self._verbose:
             print(f'@ {offset:#x}: CRT {data[offset:offset+16].hex()}')
-        hdr = CertificateHeader.unpack_from(data, offset)
+        hdr = CertificateHeader(data, offset)
         if self._verbose:
             print(hdr)
 
@@ -285,7 +282,7 @@ class iMXImageContainer(ContainerABC):
     def _parse_dek(self, data, offset):
         if self._verbose:
             print(f'@ {offset:#x}: DEK {data[offset:offset+16].hex()}')
-        hdr = DEKHeader.unpack_from(data, offset)
+        hdr = DEKHeader(data, offset)
         if self._verbose:
             print(hdr)
 

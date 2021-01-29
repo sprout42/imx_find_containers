@@ -35,8 +35,7 @@ def main():
                 print(c)
 
     if results:
-        print(vars(args))
-        utils.export(results, **vars(args))
+        utils.save_results(results, **vars(args))
 
     return 0
 
