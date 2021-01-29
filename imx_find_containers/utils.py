@@ -156,7 +156,7 @@ def save_results(results, output_format=None, include_image_contents=False, extr
                                 f.write(img['data'])
 
 
-def recursive_scandir(path):
+def find_files(path):
     try:
         file_list = []
         for item in os.scandir(path):
@@ -172,5 +172,5 @@ def recursive_scandir(path):
 __all__ = [
     'open_results',
     'save_results',
-    'recursive_scandir',
+    'find_files',
 ]
