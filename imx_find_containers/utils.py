@@ -70,14 +70,6 @@ def _write_pickle(filename, results):
         pickle.dump(results, f)
 
 
-def save_results(filename, results):
-    if _use_yaml:
-        _write_yaml(filename, results)
-    else:
-        # If the yaml package was not able to be loaded use pickle instead
-        _write_pickle(filename, results)
-
-
 def _open_yaml(filename):
     # Use the "unsafe" loader so we get sane and easy to parse types from 
     # loading a doc
@@ -127,7 +119,7 @@ def _path_to_filename(path):
     return filename
 
 
-def export(results, include_image_contents=False, extract=False, **kwargs):
+def save_results(results, output_format=None, include_image_contents=False, extract=False, **kwargs):
     # First save the overall results
     export_filename = time.strftime("scan_results.%Y-%m-%dT%H:%M:%S%z", time.localtime())
 
@@ -136,7 +128,11 @@ def export(results, include_image_contents=False, extract=False, **kwargs):
     for filename in results:
         for container in results[filename]:
             container.export_images = include_image_contents
-    save_results(export_filename, results)
+
+    if output_format == 'pickle' or not _use_yaml:
+        _write_pickle(filename, results)
+    else:
+        _write_yaml(filename, results)
 
     # Now export any image files found binwalk-style
     if extract:
@@ -172,3 +168,10 @@ def recursive_scandir(path):
         return file_list
     except NotADirectoryError:
         return [path]
+
+
+__all__ = [
+    'open_results',
+    'save_results',
+    'recursive_scandir',
+]

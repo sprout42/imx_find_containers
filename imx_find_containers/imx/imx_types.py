@@ -167,3 +167,32 @@ SRKTable = StructTuple('SRKTable', '<BHB', [
 SRKRecordHeader = StructTuple('SRKRecordHeader', '<BHBBBBxHH', [
     'tag', 'length', 'alg', 'hash', 'key_size', 'flags', 'mod_len', 'exp_len',
 ])
+
+
+__all__ = [
+    'ContanerVersions',
+    'HeaderTag',
+    'SRKSet',
+    'ImageType',
+    'CPUID',
+    'MUID',
+    'PartitionID',
+    'HashType',
+    'CoreType',
+    'AlgType',
+    'ECDSACurve',
+    'AESKeySize',
+    'EncryptionAlg',
+    'EncryptionMode',
+    'RSAKeySize',
+    'CertPermissions',
+    'Header',
+    'ContainerHeader',
+    'ImageHeader',
+    'SignatureBlock',
+    'CertificateHeader',
+    'SignatureHeader',
+    'DEKHeader',
+    'SRKTable',
+    'SRKRecordHeader',
+]
