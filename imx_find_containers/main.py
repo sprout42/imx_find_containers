@@ -22,10 +22,9 @@ def main():
     args = parser.parse_args()
 
     results = {}
-    file_list = utils.recursive_scandir(args.path)
-    for item in file_list:
+    for item in utils.find_files(args.path):
         print(f'Searching {item}')
-        containers = container.find(item, **vars(args))
+        containers = container.scan_file(item, **vars(args))
         if containers:
             results[item] = containers
 
