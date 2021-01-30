@@ -19,8 +19,12 @@ images because it is already written, works, and FIT/FDT parsing is a large set
 of functionality to re-write myself for fun.
 
 ## Dependencies
-- pyfdt >= 0.3
-- ruamel.yaml >= 0.16.12
+- pyfdt
+
+## Optional Dependencies
+- ruamel.yaml
+OR
+- PyYAML
 
 # CLI Usage
 
@@ -73,18 +77,19 @@ scan_results.2020-09-14T15:43:57-0400.yaml
 
 If the `--include-image-contents` flag is set then the individual images in the 
 binary will be included in the scan results yaml file as base64 data.  This does 
-increase the amount of time it takes to export the results, but makes it more 
-convenient to load the scanned results in python later for further manipulation.
+slightly increase the amount of time it takes to export the results, but makes 
+it more convenient to load the scanned results in python later for further 
+manipulation.
 ```
 $ time imx_find_containers emmc_image.bin > /dev/null
-real	0m0.466s
-user	0m0.343s
-sys	0m0.101s
+real    0m0.455s
+user    0m0.329s
+sys     0m0.105s
 
 $ time imx_find_containers -I emmc_image.bin > /dev/null
-real	0m25.211s
-user	0m24.464s
-sys	0m0.357s
+real    0m1.024s
+user    0m0.817s
+sys     0m0.166s
 ```
 
 This option can greatly increase the size of the scan results file as well.
@@ -106,22 +111,33 @@ $ ls -sh1 scan_results.*
 ```
 
 The scan results can be saved as a pickle instead of YAML with the 
-`--output-format pickle` command line option.  The pickle results do get written 
-faster than the YAML scan results, but result in a less portable binary 
-file.
+`--output-format pickle` command line option.
 ```
-$ time imx_find_containers -o pickle emmc_image.bin > /dev/null
-real	0m0.444s
-user	0m0.310s
-sys	0m0.108s
+$ time imx_find_containers -o pickle emmc_image.bin
+Searching emmc_image.bin
+Saving scan results: scan_results.2020-09-15T15:44:25-0400.pickle
+
+real    0m0.457s
+user    0m0.330s
+sys     0m0.106s
+
+$ time imx_find_containers -I -o pickle emmc_image.bin
+Searching emmc_image.bin
+Saving scan results: scan_results.2020-09-15T16:43:57-0400.pickle
+
+real    0m0.464s
+user    0m0.327s
+sys     0m0.108s
 ```
 
-However, because the pickle is a binary, scan results that include images are 
-smaller than the YAML scan results which include the binaries as base64 strings.
+Because the pickle is a binary, scan results that include images are smaller 
+than the YAML scan results which include the binaries as base64 strings.
 ```
-real	0m0.486s
-user	0m0.340s
-sys	0m0.114s
+$ ls -sh1 scan_results.*
+4.0K scan_results.2020-09-14T15:43:57-0400.yaml
+ 18M scan_results.2020-09-14T15:44:25-0400.yaml
+2.0K scan_results.2020-09-15T15:44:25-0400.pickle
+ 13M scan_results.2020-09-15T16:43:57-0400.pickle
 ```
 
 # API
