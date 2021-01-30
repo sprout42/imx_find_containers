@@ -1,8 +1,8 @@
 import enum
-from ..types import StructTuple, ExportableIntEnum, ExportableIntFlag
+from ..types import StructTupleMeta, ExportableIntEnum, ExportableIntFlag
 
 
-class ContanerVersions(ExportableIntEnum):
+class ContainerVersions(ExportableIntEnum):
     VERSION_0 = 0x00
     SRK_TABLE_VERSION = 0x42
 
@@ -124,63 +124,63 @@ MAX_CONTAINER_SIZE = 8192
 
 
 # All multi-byte fields are stored little-endian
-class Header(metaclass=StructTuple):
+class Header(metaclass=StructTupleMeta):
     fmt = '<BHB'
     fields = [
         'version', 'length', 'tag',
     ]
 
 
-class ContainerHeader(metaclass=StructTuple):
+class ContainerHeader(metaclass=StructTupleMeta):
     fmt = '<BHBIHBBI'
     fields = [
         'version', 'length', 'tag', 'flags', 'sw_ver', 'fuse_ver', 'num_images', 'sig_offset',
     ]
 
 
-class ImageHeader(metaclass=StructTuple):
+class ImageHeader(metaclass=StructTupleMeta):
     fmt = '<IIQQII64s32s'
     fields = [
         'offset', 'size', 'dest', 'entry', 'flags', 'metadata', 'hash', 'iv',
     ]
 
 
-class SignatureBlock(metaclass=StructTuple):
+class SignatureBlock(metaclass=StructTupleMeta):
     fmt = '<BHBHHHH'
     fields = [
         'version', 'length', 'tag', 'cert_offset', 'srk_table_offset', 'sig_offset', 'dek_offset',
     ]
 
 
-class CertificateHeader(metaclass=StructTuple):
+class CertificateHeader(metaclass=StructTupleMeta):
     fmt = '<BHBHBB'
     fields = [
         'version', 'length', 'tag', 'sig_offset', 'perms_inv', 'perms',
     ]
 
 
-class SignatureHeader(metaclass=StructTuple):
+class SignatureHeader(metaclass=StructTupleMeta):
     fmt = '<BHB4x'
     fields = [
         'version', 'length', 'tag',
     ]
 
 
-class DEKHeader(metaclass=StructTuple):
+class DEKHeader(metaclass=StructTupleMeta):
     fmt = '<BHBBBBB'
     fields = [
         'version', 'length', 'tag', 'flags', 'size', 'alg', 'mode',
     ]
 
 
-class SRKTable(metaclass=StructTuple):
+class SRKTable(metaclass=StructTupleMeta):
     fmt = '<BHB'
     fields = [
         'tag', 'length', 'version',
     ]
 
 
-class SRKRecordHeader(metaclass=StructTuple):
+class SRKRecordHeader(metaclass=StructTupleMeta):
     fmt = '<BHBBBBxHH'
     fields = [
         'tag', 'length', 'alg', 'hash', 'key_size', 'flags', 'mod_len', 'exp_len',
@@ -188,7 +188,7 @@ class SRKRecordHeader(metaclass=StructTuple):
 
 
 __all__ = [
-    'ContanerVersions',
+    'ContainerVersions',
     'HeaderTag',
     'SRKSet',
     'ImageType',

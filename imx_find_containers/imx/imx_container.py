@@ -1,14 +1,14 @@
-from ..types import ContainerABC
+from ..types import Container
 from .. import utils
 from .imx_types import *
 
 
-class iMXImageContainer(ContainerABC):
+class iMXImageContainer(Container):
     @classmethod
     def is_container(cls, data, offset, verbose=False):
         if len(data[offset:]) > ContainerHeader.size:
             # use the raw byte values for the first level check to speed this up
-            if data[offset] == ContanerVersions.VERSION_0 and \
+            if data[offset] == ContainerVersions.VERSION_0 and \
                     data[offset + 3] in (HeaderTag.CONTAINER, HeaderTag.MESSAGE):
                 # Only do a struct.unpack() instead of creating a full 
                 # StructTuple to save time. We don't need all of the header 
@@ -70,7 +70,7 @@ class iMXImageContainer(ContainerABC):
         if self._verbose:
             print(self.hdr)
 
-        assert self.hdr.version == ContanerVersions.VERSION_0
+        assert self.hdr.version == ContainerVersions.VERSION_0
         assert self.hdr.tag in (HeaderTag.CONTAINER, HeaderTag.MESSAGE)
 
         self.offset = offset
@@ -145,7 +145,7 @@ class iMXImageContainer(ContainerABC):
         if self._verbose:
             print(hdr)
 
-        assert hdr.version == ContanerVersions.VERSION_0
+        assert hdr.version == ContainerVersions.VERSION_0
         assert hdr.tag == HeaderTag.SIGNATURE_BLOCK
 
         self.sigblock = {
@@ -170,7 +170,7 @@ class iMXImageContainer(ContainerABC):
         if self._verbose:
             print(hdr)
 
-        assert hdr.version == ContanerVersions.SRK_TABLE_VERSION
+        assert hdr.version == ContainerVersions.SRK_TABLE_VERSION
         assert hdr.tag == HeaderTag.SRK_TABLE
 
         table = {
@@ -237,7 +237,7 @@ class iMXImageContainer(ContainerABC):
         if self._verbose:
             print(hdr)
 
-        assert hdr.version == ContanerVersions.VERSION_0
+        assert hdr.version == ContainerVersions.VERSION_0
         assert hdr.tag == HeaderTag.SIGNATURE
 
         sig = {
@@ -258,7 +258,7 @@ class iMXImageContainer(ContainerABC):
         if self._verbose:
             print(hdr)
 
-        assert hdr.version == ContanerVersions.VERSION_0
+        assert hdr.version == ContainerVersions.VERSION_0
         assert hdr.tag == HeaderTag.CERTIFICATE
         assert utils.invert(hdr.perms) == hdr.perms_inv
 
@@ -285,7 +285,7 @@ class iMXImageContainer(ContainerABC):
         if self._verbose:
             print(hdr)
 
-        assert hdr.version == ContanerVersions.VERSION_0
+        assert hdr.version == ContainerVersions.VERSION_0
         assert hdr.tag == HeaderTag.DEK
 
         assert hdr.alg == EncryptionAlg.AES
