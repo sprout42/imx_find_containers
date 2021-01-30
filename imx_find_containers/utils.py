@@ -4,6 +4,7 @@ import enum
 import time
 import functools
 import operator
+import copy
 
 # pickle is the backup results saving option
 import pickle
@@ -33,11 +34,23 @@ def now():
     return time.strftime("%Y-%m-%dT%H:%M:%S%z", time.localtime())
 
 
-def _write_pickle(filename, results):
+def _write_pickle(filename, results, include_image_contents=False):
+    # If include_image_contents is not set, make a duplicate of the results but 
+    # delete the images and _image_addrs from the copy
+    if not include_image_contents:
+        export_results = copy.deepcopy(results)
+        for container, _ in get_containers_from_results(export_results):
+            if hasattr(container, '_image_addrs'):
+                container._image_addrs = {}
+            if hasattr(container, 'images'):
+                container.images = []
+    else:
+        export_results = results
+
     full_filename = f'{filename}.pickle'
     print(f'Saving scan results: {full_filename}')
     with open(full_filename, 'wb') as f:
-        pickle.dump(results, f)
+        pickle.dump(export_results, f)
 
     # Return the filename
     return full_filename
@@ -160,9 +173,9 @@ def save_results(results, output_format=None, include_image_contents=False, extr
         if yaml_avail:
             yaml_avail['yaml'].write(export_filename, results)
         else:
-            _write_pickle(export_filename, results)
+            _write_pickle(export_filename, results, include_image_contents)
     elif output_format == 'pickle':
-        _write_pickle(export_filename, results)
+        _write_pickle(export_filename, results, include_image_contents)
     else:
         # All other options should be in the yaml modules, if it isn't there 
         # throw an error
@@ -200,13 +213,10 @@ def cmp_value(s1, s2):
 
 def cmp_dict(d1, d2):
     assert cmp_value(len(d1), len(d2))
-    for i1, i2 in zip(d1.items(), d2.items()):
-        k1, v1 = i1
-        k2, v2 = i2
-        # check keys
-        print(f'{repr(k1)} ?= {repr(k2)}')
-        assert cmp_value(k1, k2)
-        assert cmp_objects(v1, v2)
+    for key, value in d1.items():
+        if key not in d2:
+            raise AssertionError(f'{key} not in {list(d2.keys())}')
+        assert cmp_objects(value, d2[key])
     return True
 
 

@@ -81,45 +81,58 @@ class ExportableObject:
         return cls(**data)
 
 
-# Empty class just used to help identify classes created with StructTupleMeta
 class StructTuple(ExportableObject):
-    pass
+    _struct = None
+    _fields = None
+
+    @classproperty
+    def size(cls):
+        return cls._struct.size
+
+    def __init__(self, data=None, offset=0, **kwargs):
+        # Must have some arguments
+        assert data is not None or kwargs
+
+        if data is not None:
+            assert len(data[offset:]) >= self.size
+            unpacked = self._struct.unpack_from(data, offset=offset)
+            for attr, arg in zip(self._fields, unpacked):
+                setattr(self, attr, arg)
+        elif kwargs:
+            assert all(attr in kwargs for attr in self._fields)
+            for attr in self._fields:
+                setattr(self, attr, kwargs[attr])
+
+    def __repr__(self):
+        attrs = []
+        for key in self._fields:
+            try:
+                attrs.append(hex(getattr(self, key)))
+            except TypeError:
+                # must be bytes
+                attrs.append(repr(getattr(self, key)))
+        param_str = ', '.join(attrs)
+        return f'{self.__class__.__name__}({param_str})'
+
+    def __iter__(self):
+        return iter(self._fields)
+
+    def __contains__(self, key):
+        return key in self._fields
+
+    def __getitem__(self, key):
+        if key not in self:
+            raise KeyError
+        return getattr(self, key)
 
 
 class StructTupleMeta(type):
     def __new__(metacls, cls, bases, classdict):
         _struct = struct.Struct(classdict.pop('fmt'))
         _fields = classdict.pop('fields')
+
         classdict['_struct'] = _struct
         classdict['_fields'] = _fields
-        classdict['size'] = _struct.size
-
-        def __newtype_init__(self, data=None, offset=0, **kwargs):
-            # Must have some arguments
-            assert data is not None or kwargs
-
-            if data is not None:
-                assert len(data[offset:]) >= self.size
-                unpacked = self._struct.unpack_from(data, offset=offset)
-                for attr, arg in zip(self._fields, unpacked):
-                    setattr(self, attr, arg)
-            elif kwargs:
-                assert all(attr in kwargs for attr in self._fields)
-                for attr in self._fields:
-                    setattr(self, attr, kwargs[attr])
-        classdict['__init__'] = __newtype_init__
-
-        def __newtype_repr__(self):
-            attrs = []
-            for key in self._fields:
-                try:
-                    attrs.append(hex(getattr(self, key)))
-                except TypeError:
-                    # must be bytes
-                    attrs.append(repr(getattr(self, key)))
-            param_str = ', '.join(attrs)
-            return f'{self.__class__.__name__}({param_str})'
-        classdict['__repr__'] = __newtype_repr__
 
         newtyp_bases = (StructTuple,) + bases
 
@@ -162,11 +175,14 @@ class Container(ExportableObject, abc.ABC):
         # iterator returns a list of properties that can be accessed.
         return (a for a in vars(self) if not a.startswith('_'))
 
+    def __contains__(self, key):
+        return key in iter(self)
+
     def __getitem__(self, key):
         # Allow accessing container attributes like a dictionary but only 
         # non-hidden properties to match the keys returned by the __iter__ 
         # function.
-        if key not in iter(self):
+        if key not in self:
             raise KeyError
         return getattr(self, key)
 
@@ -229,10 +245,6 @@ class Container(ExportableObject, abc.ABC):
 
     def __str__(self):
         return f'{self.offset:#08x}: {repr(self)}'
-
-    def export(self, include_image_contents=False):
-        # Just flatten all of the header/namedtuple types into dicts
-        return _normalize_obj(self, include_image_contents)
 
 
 __all__ = [
