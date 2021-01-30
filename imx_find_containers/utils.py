@@ -2,17 +2,16 @@ import re
 import os
 import enum
 import time
+import functools
+import operator
 
 # pickle is the backup results saving option
 import pickle
-try:
-    import ruamel.yaml
-    _use_yaml = True
-except ImportError:
-    _use_yaml = False
 
-from . import imx
-from . import fit
+from .types import Container, StructTuple
+
+# YAML results saving utilities
+from .yaml import *
 
 
 def invert(num):
@@ -34,68 +33,14 @@ def now():
     return time.strftime("%Y-%m-%dT%H:%M:%S%z", time.localtime())
 
 
-def _write_yaml(filename, results):
-    yaml = ruamel.yaml.YAML()
-
-    # Register all of the enum classes with custom yaml export functions
-    for obj in vars(imx).values():
-        if hasattr(obj, 'yaml_tag'):
-            yaml.register_class(obj)
-
-    for obj in vars(fit).values():
-        if hasattr(obj, 'yaml_tag'):
-            yaml.register_class(obj)
-
-    # Customize how the yaml output will look
-    def hexint_presenter(representer, data):
-        return representer.represent_int(hex(data))
-    yaml.representer.add_representer(int, hexint_presenter)
-
-    def range_presenter(representer, data):
-        range_str = f'({data.start:#x}, {data.stop:#x}, {data.step:#x})'
-        return representer.represent_scalar('!range', range_str)
-    yaml.representer.add_representer(range, range_presenter)
-
-    full_filename = f'{filename}.yaml'
-    print(f'Saving scan results: {full_filename}')
-    with open(full_filename, 'w') as f:
-        yaml.dump(results, f)
-
-
 def _write_pickle(filename, results):
     full_filename = f'{filename}.pickle'
     print(f'Saving scan results: {full_filename}')
     with open(full_filename, 'wb') as f:
         pickle.dump(results, f)
 
-
-def _open_yaml(filename):
-    # Use the "unsafe" loader so we get sane and easy to parse types from 
-    # loading a doc
-    yaml = ruamel.yaml.YAML(typ='unsafe')
-
-    # Register all of the enum classes with custom yaml import functions
-    for obj in vars(imx).values():
-        if hasattr(obj, 'yaml_tag'):
-            yaml.register_class(obj)
-
-    for obj in vars(fit).values():
-        if hasattr(obj, 'yaml_tag'):
-            yaml.register_class(obj)
-
-    # The custom range output also has to be handled
-    def range_constructor(constructor, node):
-        # The output in _write_yaml() is:
-        #   (start, stop, step)
-        # where the values are all base16
-        #
-        # Get the values in between the parenthesis and make a new range object
-        start, stop, step = [int(v, 16) for v in node.value[1:-1].split(', ')]
-        return range(start, stop, step)
-    yaml.constructor.add_constructor('!range', range_constructor)
-
-    with open(filename, 'r') as f:
-        return yaml.load(f)
+    # Return the filename
+    return full_filename
 
 
 def _open_pickle(filename):
@@ -103,12 +48,21 @@ def _open_pickle(filename):
         return pickle.load(f)
 
 
-def open_results(filename):
+def open_results(filename, output_format=None):
     # The results being opened may be a yaml or a pickle
     try:
         return _open_pickle(filename)
     except pickle.UnpicklingError:
-        return _open_yaml(filename)
+        yaml_avail = get_yaml_modules_available()
+        assert yaml_avail
+
+        # Use the output_format to allow selection of which YAML module to use 
+        # if there is a choice
+        if output_format is not None:
+            assert output_format in yaml_avail
+            return yaml_avail[output_format].open(filename)
+        else:
+            return yaml_avail['yaml'].open(filename)
 
 
 def _path_to_filename(path):
@@ -118,42 +72,110 @@ def _path_to_filename(path):
     return filename
 
 
+def container_save_images(container, prefix):
+    if hasattr(container, 'images') and container.images is not None:
+        for img in container.images:
+            if img['data'] is not None:
+                if 'fileext' in img:
+                    imgfilename = f'{prefix}--{offset:X}.{img["fileext"]}'
+                else:
+                    offset = img['offset']
+                    imgfilename = f'{prefix}-{offset:X}.bin'
+
+                # Handle writing out bytes or strings as determined by the 
+                # image type
+                print(f'Exporting image: {imgfilename}')
+                if isinstance(img['data'], bytes):
+                    with open(imgfilename, 'wb') as f:
+                        f.write(img['data'])
+                else:
+                    with open(imgfilename, 'w') as f:
+                        f.write(img['data'])
+
+
+def get_containers_from_results(results):
+    # The results may be a dictionary, list, or single Container
+    if isinstance(results, dict):
+        # In this format the dict key is the filename that the data was 
+        # extracted from and the value is a list of containers
+        # TODO: someday I really should just use type annotations
+        assert all( \
+                isinstance(f, str) and \
+                hasattr(r, '__iter__') and \
+                all(isinstance(c, Container) for c in r) \
+                for f, r in results.items())
+
+        # In this format the key should be the source filename.
+        # flatten the lists out
+        containers = functools.reduce(operator.iconcat, \
+                (((c, _path_to_filename(f)) for c in r) \
+                for f, r in results.items()), [])
+        return containers
+
+    elif hasattr(results, '__iter__'):
+        # Filename is unknown, use a placeholder prefix
+        prefix = _path_to_filename('unknown')
+
+        if all(isinstance(r, Container) for r in results):
+            containers = ((r, prefix) for r in results)
+            return containers
+
+        elif all(hasattr(r, '__iter__') and \
+                all(isinstance(c, Container) for c in r) \
+                for r in results):
+            containers = itertools.chain( \
+                    ((c, prefix) for c in r) \
+                    for r in results)
+            return containers
+
+    elif isinstance(results, Container):
+        # Filename is unknown, use a placeholder prefix
+        prefix = _path_to_filename('unknown')
+
+        containers = list((results, prefix))
+        return containers
+
+    raise Exception(f'Unknown results format')
+
+
+def save_images(results):
+    containers = get_containers_from_results(results)
+    for container, prefix in containers:
+        container_save_images(container, prefix)
+
+
 def save_results(results, output_format=None, include_image_contents=False, extract=False, **kwargs):
     # First save the overall results
     export_filename = time.strftime("scan_results.%Y-%m-%dT%H:%M:%S%z", time.localtime())
 
     # Update the export_images flag in each container to indicate if they should 
     # be included in any exported results or not
-    for filename in results:
-        for container in results[filename]:
-            container.export_images = include_image_contents
+    containers = get_containers_from_results(results)
+    for container, _ in containers:
+        container.export_images = include_image_contents
 
-    if output_format == 'pickle' or not _use_yaml:
+    yaml_avail = get_yaml_modules_available()
+
+    if output_format == 'auto':
+        if yaml_avail:
+            yaml_avail['yaml'].write(export_filename, results)
+        else:
+            _write_pickle(export_filename, results)
+    elif output_format == 'pickle':
         _write_pickle(export_filename, results)
     else:
-        _write_yaml(export_filename, results)
+        # All other options should be in the yaml modules, if it isn't there 
+        # throw an error
+        assert output_format in yaml_avail
+        yaml_avail[output_format].write(export_filename, results)
 
-    # Now export any image files found binwalk-style
     if extract:
-        for filename in results:
-            for container in results[filename]:
-                for img in container.images:
-                    if img['data'] is not None:
-                        if 'fileext' in img:
-                            imgfilename = f'{_path_to_filename(filename)}--{offset:X}.{img["fileext"]}'
-                        else:
-                            offset = img['offset']
-                            imgfilename = f'{_path_to_filename(filename)}-{offset:X}.bin'
+        # Now export any image files found binwalk-style
+        for container, prefix in containers:
+            container_save_images(container, prefix)
 
-                        # Handle writing out bytes or strings as determined by the 
-                        # image type
-                        print(f'Exporting image: {imgfilename}')
-                        if isinstance(img['data'], bytes):
-                            with open(imgfilename, 'wb') as f:
-                                f.write(img['data'])
-                        else:
-                            with open(imgfilename, 'w') as f:
-                                f.write(img['data'])
+    # Return the filename the results were saved to
+    return
 
 
 def find_files(path):
@@ -169,8 +191,44 @@ def find_files(path):
         return [path]
 
 
+# Internal testing utilities
+def cmp_value(s1, s2):
+    if s1 != s2:
+        raise AssertionError(f'{s1} != {s2}')
+    return True
+
+
+def cmp_dict(d1, d2):
+    assert cmp_value(len(d1), len(d2))
+    for i1, i2 in zip(d1.items(), d2.items()):
+        k1, v1 = i1
+        k2, v2 = i2
+        # check keys
+        print(f'{repr(k1)} ?= {repr(k2)}')
+        assert cmp_value(k1, k2)
+        assert cmp_objects(v1, v2)
+    return True
+
+
+def cmp_objects(o1, o2):
+    print(f'{o1.__class__.__name__} ?= {o2.__class__.__name__}')
+    assert cmp_value(o1.__class__, o2.__class__)
+    if isinstance(o1, (Container, StructTuple)):
+        return cmp_dict(vars(o1), vars(o2))
+    elif hasattr(o1, 'items'):
+        return cmp_dict(o1, o2)
+    elif isinstance(o1, (list, tuple)):
+        assert cmp_value(len(o1), len(o2))
+        for v1, v2 in zip(iter(o1), iter(o2)):
+            assert cmp_objects(v1, v2)
+    else:
+        assert cmp_value(o1, o2)
+    return True
+
+
 __all__ = [
     'open_results',
     'save_results',
+    'save_images',
     'find_files',
 ]

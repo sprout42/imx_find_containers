@@ -3,7 +3,6 @@ import struct
 import functools
 import operator
 import abc
-import types
 
 
 # To make yaml_tag in the ExportableEnum class a function instead of static
@@ -69,10 +68,12 @@ class ExportableObject:
     @classmethod
     def to_yaml(cls, representer, node):
         if hasattr(node, 'get_yaml_attrs'):
+            print(cls.yaml_tag, list(node.get_yaml_attrs()))
             value = dict((a, getattr(node, a)) for a in node.get_yaml_attrs())
         else:
+            print(cls.yaml_tag, list(k for k in vars(node) if not k.startswith('_')))
             value = dict((k, v) for k, v in vars(node).items() if not k.startswith('_'))
-        return representer.represent_mapping(cls.yaml_tag, value)
+        return representer.represent_mapping(cls.yaml_tag, value, flow_style=False)
 
     @classmethod
     def from_yaml(cls, constructor, node):
@@ -80,7 +81,12 @@ class ExportableObject:
         return cls(**data)
 
 
-class StructTuple(type):
+# Empty class just used to help identify classes created with StructTupleMeta
+class StructTuple(ExportableObject):
+    pass
+
+
+class StructTupleMeta(type):
     def __new__(metacls, cls, bases, classdict):
         _struct = struct.Struct(classdict.pop('fmt'))
         _fields = classdict.pop('fields')
@@ -115,13 +121,14 @@ class StructTuple(type):
             return f'{self.__class__.__name__}({param_str})'
         classdict['__repr__'] = __newtype_repr__
 
-        newtyp_bases = (ExportableObject,) + bases
+        newtyp_bases = (StructTuple,) + bases
 
         newtyp = super().__new__(metacls, cls, newtyp_bases, classdict)
+
         return newtyp
 
 
-class ContainerABC(ExportableObject, abc.ABC):
+class Container(ExportableObject, abc.ABC):
     @classmethod
     @abc.abstractmethod
     def is_container(cls, data, offset, verbose=False):
@@ -234,5 +241,6 @@ __all__ = [
     'ExportableIntFlag',
     'ExportableObject',
     'StructTuple',
-    'ContainerABC',
+    'StructTupleMeta',
+    'Container',
 ]

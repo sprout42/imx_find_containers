@@ -3,11 +3,11 @@ import struct
 
 from pyfdt.pyfdt import FdtBlobParse
 
-from ..types import ContainerABC
+from ..types import Container
 from .fit_types import *
 
 
-class FITContainer(ContainerABC):
+class FITContainer(Container):
     @classmethod
     def is_container(cls, data, offset, verbose=False):
         # First 4 bytes will be the FDT_MAGIC of 0xD00DFEED
