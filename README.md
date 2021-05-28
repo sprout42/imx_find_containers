@@ -1,21 +1,21 @@
 # Summary
 
-The `imx_find_containers` tool helps to find i.MX containers in a binary, parses 
+The `imx_find_containers` tool helps to find i.MX containers in a binary, parses
 the header for the container which indicates (among other things) if the image is
 signed, and which processor core the image will be executed on.
 
 Adapted from info in the following NXP docs:
-    - IMX8DQXPRM.pdf
-    - AN12056.pdf
+- IMX8DQXPRM.pdf
+- AN12056.pdf
 
 And the following tools:
-    - https://source.codeaurora.org/external/imx/uboot-imx
-    - https://source.codeaurora.org/external/imx/imx-mkimage/
-    - https://www.nxp.com/webapp/Download?colCode=IMX_CST_TOOL_NEW&location=null
+- https://source.codeaurora.org/external/imx/uboot-imx
+- https://source.codeaurora.org/external/imx/imx-mkimage/
+- https://www.nxp.com/webapp/Download?colCode=IMX_CST_TOOL_NEW&location=null
 
 As much as I like writing tools to parse things, the
 https://github.com/superna9999/pyfdt/ python module is used to process FIT/FDT
-images because it is already written, works, and FIT/FDT parsing is a large set 
+images because it is already written, works, and FIT/FDT parsing is a large set
 of functionality to re-write myself for fun.
 
 ## Dependencies
@@ -30,12 +30,12 @@ OR
 
 Point at a binary or directory of binaries. Use the `-v` flag for extra verbose
 output indicating things that are possible, but unlikely to be an i.MX boot
-image and have been skipped.  The verbose flag will also cause all parsed 
-headers to be printed, and the address of any i.MX or FIT file that was 
-identified.  By default the tool only prints the file that is being scanned, and 
+image and have been skipped.  The verbose flag will also cause all parsed
+headers to be printed, and the address of any i.MX or FIT file that was
+identified.  By default the tool only prints the file that is being scanned, and
 the name of the results file when the scan is complete.
 
-A summary of the entire parsed image will be captured in a scan results yaml 
+A summary of the entire parsed image will be captured in a scan results yaml
 file.
 
 ```
@@ -52,9 +52,9 @@ scan_results.2020-09-14T15:43:57-0400.yaml
 ```
 
 ## Extracting Images
-If the `--extract` flag is set then the contents of any images located in the 
-file will be saved as individual files similar to how binwalk operates.  Any 
-FIT/FDT/DTB image will also be exported if found, and the FIT source file will 
+If the `--extract` flag is set then the contents of any images located in the
+file will be saved as individual files similar to how binwalk operates.  Any
+FIT/FDT/DTB image will also be exported if found, and the FIT source file will
 also be saved.
 ```
 $ ls -1
@@ -75,10 +75,10 @@ scan_results.2020-09-14T15:43:57-0400.yaml
 
 ## Including Images in Scan Results
 
-If the `--include-image-contents` flag is set then the individual images in the 
-binary will be included in the scan results yaml file as base64 data.  This does 
-slightly increase the amount of time it takes to export the results, but makes 
-it more convenient to load the scanned results in python later for further 
+If the `--include-image-contents` flag is set then the individual images in the
+binary will be included in the scan results yaml file as base64 data.  This does
+slightly increase the amount of time it takes to export the results, but makes
+it more convenient to load the scanned results in python later for further
 manipulation.
 ```
 $ time imx_find_containers emmc_image.bin > /dev/null
@@ -110,7 +110,7 @@ $ ls -sh1 scan_results.*
  18M scan_results.2020-09-14T15:44:25-0400.yaml
 ```
 
-The scan results can be saved as a pickle instead of YAML with the 
+The scan results can be saved as a pickle instead of YAML with the
 `--output-format pickle` command line option.
 ```
 $ time imx_find_containers -o pickle emmc_image.bin
@@ -130,7 +130,7 @@ user    0m0.327s
 sys     0m0.108s
 ```
 
-Because the pickle is a binary, scan results that include images are smaller 
+Because the pickle is a binary, scan results that include images are smaller
 than the YAML scan results which include the binaries as base64 strings.
 ```
 $ ls -sh1 scan_results.*
@@ -143,7 +143,7 @@ $ ls -sh1 scan_results.*
 # API
 
 ## scan_file()
-The `imx_find_containers.scan_file()` function can be called programmatically to 
+The `imx_find_containers.scan_file()` function can be called programmatically to
 scan a single file for known image types.
 ```
 >>> from imx_find_containers import scan_file
@@ -151,8 +151,8 @@ scan a single file for known image types.
 ```
 
 ## find_files()
-When called through the command line a directory or multiple files can be 
-scanned for image formats.  This can be duplicated using the 
+When called through the command line a directory or multiple files can be
+scanned for image formats.  This can be duplicated using the
 `imx_find_containers.find_files()` function.
 ```
 >>> from imx_find_containers import find_files, scan_file
@@ -160,9 +160,9 @@ scanned for image formats.  This can be duplicated using the
 ```
 
 ## save_results()
-Results for multiple files can be saved with the 
-`imx_find_containers.save_results()` function.  At the moment this function 
-expects the input results to be a dictionary where the keys are the filenames 
+Results for multiple files can be saved with the
+`imx_find_containers.save_results()` function.  At the moment this function
+expects the input results to be a dictionary where the keys are the filenames
 that were scanned.
 ```
 >>> from imx_find_containers import find_files, scan_file, save_results
@@ -178,9 +178,9 @@ Scan results can be saved as pickle by specifying the `output_format` param:
 ```
 
 ## open_results()
-The yaml (or pickle) scan results are formatted with custom type information, 
-this information can be used to re-import the results using the 
-`imx_find_containers.open_results()` function.  This is useful for 
+The yaml (or pickle) scan results are formatted with custom type information,
+this information can be used to re-import the results using the
+`imx_find_containers.open_results()` function.  This is useful for
 programmatically exploring the contents of a scanned image.
 
 ```
@@ -195,9 +195,9 @@ dict_keys(['emmc_image.bin'])
 0x200100: FITContainer(FDTHeader(0xd00dfeed, 0x11422, 0x38, 0x10ae0, 0x28, 0x11, 0x10))
 ```
 
-The `imx_find_containers.open_results()` function can open both YAML and pickle 
+The `imx_find_containers.open_results()` function can open both YAML and pickle
 formatted results files.
 
-YAML or pickle files may contain malicious information and the function that 
-re-reads the scan results loads type information from the file, only import scan 
+YAML or pickle files may contain malicious information and the function that
+re-reads the scan results loads type information from the file, only import scan
 results that you trust.
