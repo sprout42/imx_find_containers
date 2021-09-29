@@ -14,7 +14,6 @@ class FITContainer(Container):
         # second 4 bytes is the size
         if len(data) >= offset + 8:
             magic, size = struct.unpack_from('>II', data[offset:])
-            print(hex(offset), hex(magic), hex(size))
             return magic == 0xD00DFEED and len(data) >= size
         else:
             return False
