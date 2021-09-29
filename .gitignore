@@ -6,3 +6,7 @@ imx_find_containers.egg-info/
 *.yaml
 *.dtb
 *.dts
+
+# build files
+dist/
+build/
