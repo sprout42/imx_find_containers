@@ -10,14 +10,14 @@ class iMXImageContainer(Container):
             # use the raw byte values for the first level check to speed this up
             if data[offset] == ContainerVersions.VERSION_0 and \
                     data[offset + 3] in (HeaderTag.CONTAINER, HeaderTag.MESSAGE):
-                # Only do a struct.unpack() instead of creating a full 
-                # StructTuple to save time. We don't need all of the header 
+                # Only do a struct.unpack() instead of creating a full
+                # StructTuple to save time. We don't need all of the header
                 # elements for this check.
                 elems = ContainerHeader._struct.unpack_from(data, offset)
                 _, length, _, _, _, _, num_images, sig_offset = elems
 
-                # This probably is a container, but first do a sanity check and 
-                # make sure the length, number of images, or signature block 
+                # This probably is a container, but first do a sanity check and
+                # make sure the length, number of images, or signature block
                 # offsets aren't too silly
                 #if hdr.length <= MAX_CONTAINER_SIZE and \
                 #        offset + hdr.length <= len(data) and \
@@ -34,7 +34,7 @@ class iMXImageContainer(Container):
                     return True
                 elif verbose:
                     # Probably not a container but print a message just in case
-                    print(f'SKIP @ {offset:#x}: {data[offset:offset + ContainerHeader.size].hex()}')
+                    print(f'SKIP @ {offset:#x} : length={length:#x}, images={num_images}, sig_offset={sig_offset:#} ({data[offset:offset + ContainerHeader.size].hex()})')
 
         return False
 
@@ -114,8 +114,8 @@ class iMXImageContainer(Container):
             img['offset'] = self.offset + hdr.offset
 
             if hdr.size:
-                # Ensure that the container data is large enough to hold this 
-                # image.  The image offsets are offsets from the start of the 
+                # Ensure that the container data is large enough to hold this
+                # image.  The image offsets are offsets from the start of the
                 # container header, unlike other sections in the container.
                 end = img['offset'] + hdr.size
 
@@ -126,8 +126,8 @@ class iMXImageContainer(Container):
                     img['data'] = data[img['offset']:end]
 
             elif img['type'] == ImageType.DCD_DDR:
-                # The DDR initialization image is embedded in the SCFW image, 
-                # but there is a dummy image header with a 0 size, if that is 
+                # The DDR initialization image is embedded in the SCFW image,
+                # but there is a dummy image header with a 0 size, if that is
                 # the case for this image don't print a warning.
                 pass
 
@@ -216,7 +216,7 @@ class iMXImageContainer(Container):
             record['exponent'] = data[exp_offset:end]
 
         else:
-            # The ECDSA key info uses the same fields as the RSA key, but the 
+            # The ECDSA key info uses the same fields as the RSA key, but the
             # fields mean different things
             record['curve'] = ECDSACurve(hdr.key_size)
 
@@ -268,7 +268,7 @@ class iMXImageContainer(Container):
             'perm': CertPermissions(hdr.perms),
         }
 
-        # The public key in the cert uses the same format as the SRK records 
+        # The public key in the cert uses the same format as the SRK records
         # used in the SRKTable
         cert['pub'] = self._parse_srk(data, offset + CertificateHeader.size)
 
