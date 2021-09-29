@@ -42,7 +42,7 @@ class ExportableIntFlag(enum.IntFlag):
 
     @classmethod
     def to_yaml(cls, representer, node):
-        # I'd _like_ to just have this be a straight repr(node) but that 
+        # I'd _like_ to just have this be a straight repr(node) but that
         # produces a value that is very difficult to import.
         bits = [f for f in list(cls) if f & node.value]
         bit_name_list = '|'.join(f.name for f in bits)
@@ -53,7 +53,7 @@ class ExportableIntFlag(enum.IntFlag):
     @classmethod
     def from_yaml(cls, constructor, node):
         _, values_str = node.value.split()
-        # take the numerical values between the parenthesis and combine them 
+        # take the numerical values between the parenthesis and combine them
         # into a single value
         values_list = [int(v) for v in values_str[1:-1].split('|')]
         value = functools.reduce(operator.ior, values_list)
@@ -68,10 +68,8 @@ class ExportableObject:
     @classmethod
     def to_yaml(cls, representer, node):
         if hasattr(node, 'get_yaml_attrs'):
-            print(cls.yaml_tag, list(node.get_yaml_attrs()))
             value = dict((a, getattr(node, a)) for a in node.get_yaml_attrs())
         else:
-            print(cls.yaml_tag, list(k for k in vars(node) if not k.startswith('_')))
             value = dict((k, v) for k, v in vars(node).items() if not k.startswith('_'))
         return representer.represent_mapping(cls.yaml_tag, value, flow_style=False)
 
@@ -150,7 +148,7 @@ class Container(ExportableObject, abc.ABC):
     def __init__(self, data=None, offset=0, export_images=False, verbose=False, **kwargs):
         assert data or kwargs
 
-        # This option defines whether or not any "images" are included in a yaml 
+        # This option defines whether or not any "images" are included in a yaml
         # export
         self._export_images = export_images
 
@@ -161,17 +159,17 @@ class Container(ExportableObject, abc.ABC):
         if data is not None:
             self.init_from_data(data, offset)
         else:
-            # Recreating a loaded object, probably from a scan results file.  
+            # Recreating a loaded object, probably from a scan results file.
             # each key=value pair is an attribute and value that should be set
             for key, value in kwargs.items():
                 setattr(self, key, value)
 
-            # If there are any images in the data that was set, sort out the 
+            # If there are any images in the data that was set, sort out the
             # image address mapping now.
             self.map_images_by_addr()
 
     def __iter__(self):
-        # Make it easy to iterate over the available info in a container, the 
+        # Make it easy to iterate over the available info in a container, the
         # iterator returns a list of properties that can be accessed.
         return (a for a in vars(self) if not a.startswith('_'))
 
@@ -179,8 +177,8 @@ class Container(ExportableObject, abc.ABC):
         return key in iter(self)
 
     def __getitem__(self, key):
-        # Allow accessing container attributes like a dictionary but only 
-        # non-hidden properties to match the keys returned by the __iter__ 
+        # Allow accessing container attributes like a dictionary but only
+        # non-hidden properties to match the keys returned by the __iter__
         # function.
         if key not in self:
             raise KeyError
@@ -216,7 +214,7 @@ class Container(ExportableObject, abc.ABC):
                 self._image_addrs[img['range']] = img
 
     def find_image_by_addr(self, addr):
-        # If the address provided is in the address range of one of the images 
+        # If the address provided is in the address range of one of the images
         # in this container, the image info is returned
         for addr_range, img in self._image_addrs.items():
             if addr in addr_range:
@@ -224,13 +222,13 @@ class Container(ExportableObject, abc.ABC):
         return None
 
     def find_next_addr(self, addr):
-        # A utility to find the next address that is not in an image belonging 
+        # A utility to find the next address that is not in an image belonging
         # to this container
         img = self.find_image_by_addr(addr)
         if img is None:
             return addr
         else:
-            # Find the address that is at the end of the identified image, and 
+            # Find the address that is at the end of the identified image, and
             # ensure that doesn't match any other images in this container
             next_addr = img['range'].stop
             return self.find_next_addr(next_addr)
