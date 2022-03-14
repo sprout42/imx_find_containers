@@ -109,7 +109,7 @@ class StructTuple(ExportableObject):
                 attrs.append(f'{key}={value:#x}')
             except TypeError:
                 # Default to __repr__ of the value
-                attrs.append(f'{key}={value:r}')
+                attrs.append(f'{key}={repr(value)}')
         param_str = ', '.join(attrs)
         return f'{self.__class__.__name__}({param_str})'
 
