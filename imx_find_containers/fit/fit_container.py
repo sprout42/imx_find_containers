@@ -12,7 +12,7 @@ class FITContainer(Container):
     def is_container(cls, data, offset, verbose=False):
         # First 4 bytes will be the FDT_MAGIC of 0xD00DFEED
         # second 4 bytes is the size
-        if len(data) >= offset + 8:
+        if data is not None and len(data) >= offset + 8:
             magic, size = struct.unpack_from('>II', data[offset:])
             return magic == 0xD00DFEED and len(data) >= size
         else:

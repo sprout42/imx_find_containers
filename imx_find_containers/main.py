@@ -1,7 +1,7 @@
 import argparse
 
 from . import utils
-from . import container
+from . import find
 
 def main():
     parser = argparse.ArgumentParser(
@@ -25,7 +25,7 @@ def main():
     results = {}
     for item in utils.find_files(args.path):
         print(f'Searching {item}')
-        containers = container.scan_file(item, **vars(args))
+        containers = find.scan_file(item, **vars(args))
         if containers:
             results[item] = containers
 
