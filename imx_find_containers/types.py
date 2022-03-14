@@ -104,11 +104,12 @@ class StructTuple(ExportableObject):
     def __repr__(self):
         attrs = []
         for key in self._fields:
+            value = getattr(self, key)
             try:
-                attrs.append(hex(getattr(self, key)))
+                attrs.append(f'{key}={value:#x}')
             except TypeError:
-                # must be bytes
-                attrs.append(repr(getattr(self, key)))
+                # Default to __repr__ of the value
+                attrs.append(f'{key}={value:r}')
         param_str = ', '.join(attrs)
         return f'{self.__class__.__name__}({param_str})'
 
@@ -164,8 +165,8 @@ class Container(ExportableObject, abc.ABC):
             for key, value in kwargs.items():
                 setattr(self, key, value)
 
-            # If there are any images in the data that was set, sort out the
-            # image address mapping now.
+        # Handle mapping any image data now
+        if hasattr(self, 'images') and self.images and isinstance(self.images, (list, tuple)):
             self.map_images_by_addr()
 
     def __iter__(self):

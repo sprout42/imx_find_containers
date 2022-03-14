@@ -1,4 +1,3 @@
-import enum
 from ..types import StructTupleMeta, ExportableIntEnum, ExportableIntFlag
 
 
@@ -118,19 +117,12 @@ class CertPermissions(ExportableIntFlag):
 # NXP tools say that the max images per container should be 8
 MAX_IMAGES_PER_CONTAINER = 8
 
-# NXP docs say that two image containers should be no more than 8k, use 8k as 
+# NXP docs say that two image containers should be no more than 8k, use 8k as
 # our sanity check header size
 MAX_CONTAINER_SIZE = 8192
 
 
 # All multi-byte fields are stored little-endian
-class Header(metaclass=StructTupleMeta):
-    fmt = '<BHB'
-    fields = [
-        'version', 'length', 'tag',
-    ]
-
-
 class ContainerHeader(metaclass=StructTupleMeta):
     fmt = '<BHBIHBBI'
     fields = [
@@ -206,7 +198,6 @@ __all__ = [
     'CertPermissions',
     'MAX_IMAGES_PER_CONTAINER',
     'MAX_CONTAINER_SIZE',
-    'Header',
     'ContainerHeader',
     'ImageHeader',
     'SignatureBlock',

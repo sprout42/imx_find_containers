@@ -1,31 +1,23 @@
 from ..types import Container
 from .. import utils
-from .imx_types import *
+from .types import *
 
 
 class iMXImageContainer(Container):
     @classmethod
     def is_container(cls, data, offset, verbose=False):
-        if len(data[offset:]) > ContainerHeader.size:
+        if len(data) > offset + ContainerHeader.size:
             # use the raw byte values for the first level check to speed this up
             if data[offset] == ContainerVersions.VERSION_0 and \
                     data[offset + 3] in (HeaderTag.CONTAINER, HeaderTag.MESSAGE):
                 # Only do a struct.unpack() instead of creating a full
                 # StructTuple to save time. We don't need all of the header
                 # elements for this check.
-                elems = ContainerHeader._struct.unpack_from(data, offset)
-                _, length, _, _, _, _, num_images, sig_offset = elems
+                _, length, _, _, _, _, num_images, sig_offset = ContainerHeader._struct.unpack_from(data, offset)
 
                 # This probably is a container, but first do a sanity check and
                 # make sure the length, number of images, or signature block
                 # offsets aren't too silly
-                #if hdr.length <= MAX_CONTAINER_SIZE and \
-                #        offset + hdr.length <= len(data) and \
-                #        hdr.num_images <= MAX_IMAGES_PER_CONTAINER and \
-                #        offset + hdr.sig_offset <= len(data) and \
-                #        (hdr.num_images or hdr.sig_offset):
-                #    return True
-
                 if length <= MAX_CONTAINER_SIZE and \
                         offset + length <= len(data) and \
                         num_images <= MAX_IMAGES_PER_CONTAINER and \
@@ -34,7 +26,7 @@ class iMXImageContainer(Container):
                     return True
                 elif verbose:
                     # Probably not a container but print a message just in case
-                    print(f'SKIP @ {offset:#x} : length={length:#x}, images={num_images}, sig_offset={sig_offset:#} ({data[offset:offset + ContainerHeader.size].hex()})')
+                    print(f'SKIP @ {offset:#x}: {data[offset:offset + ContainerHeader.size].hex()}')
 
         return False
 
@@ -58,9 +50,6 @@ class iMXImageContainer(Container):
 
             for i in range(start, stop, step):
                 self.images.append(self._parse_image(data, i))
-
-        # Now do standard image/addr mapping
-        self.map_images_by_addr()
 
     def _parse_header(self, data, offset):
         assert len(data) > ContainerHeader.size
