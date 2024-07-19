@@ -48,15 +48,22 @@ class iMXImageVectorTable(Container):
         # DCD is optional
         if self.ivt.dcd != 0:
             dcd_offset = offset + (self.ivt.dcd - self.ivt.addr)
-            self._parse_dcd(data, dcd_offset)
+            self.dcd = self._parse_dcd(data, dcd_offset)
+        else:
+            self.dcd = None
 
         # CSF is optional
         if self.ivt.csf != 0:
             csf_offset = offset + (self.ivt.csf - self.ivt.addr)
-            self._parse_csf(data, csf_offset)
+            self.csf = self._parse_csf(data, csf_offset)
+        else:
+            self.csf = None
 
-        # Now that CSF is parsed, identify the application data
-        self.images = [self._parse_app(data)]
+        # Now that CSF is parsed, identify the application data, in theory this 
+        # can be a list of multiple images but the iMX6 structures only support 
+        # one. The correct application offset will be identified in the 
+        # _parse_app function.
+        self.images = [self._parse_app(data, offset)]
 
     def _parse_header(self, data, offset):
         assert len(data) > IVT_HEADER_SIZE
@@ -69,7 +76,7 @@ class iMXImageVectorTable(Container):
             print(self.ivt)
 
         assert self.hdr.tag == IVTHeaderTag.IVT
-        assert self.hdr.version in (IVTHeaderVersion.IVT_VER_2, IVTHeaderVersion.IVT_VER_3)
+        assert self.hdr.version in list(IVTHeaderVersion)
         assert self.ivt.reserved1 == 0
         assert self.ivt.reserved2 == 0
 
@@ -85,95 +92,102 @@ class iMXImageVectorTable(Container):
 
     def _parse_dcd(self, data, offset):
         if self._verbose:
-            print(f'@ {offset:#x}: DCD {data[offset:offset+DCD.size].hex()}')
+            print(f'@ {offset:#x}: DCD {data[offset:offset+Header.size].hex()}')
         hdr = Header(data, offset)
         if self._verbose:
             print(hdr)
 
         assert hdr.tag == IVTHeaderTag.DCD
-        assert hdr.version in IVTHeaderVersion.DCD_VER
+        assert hdr.version in list(DCDHeaderVersion)
         assert hdr.length <= MAX_DCD_SIZE
 
-        cmd_offset = offset + Header.size
-        cmd_end = cmd_offset + hdr.length
-        cmd_range = range(cmd_offset, cmd_end)
+        cmds_start = offset + hdr.size
+        cmds_end = offset + hdr.length
 
-        self.dcd = {
+        dcd = {
             'hdr': hdr,
-
-            # The offset of the image data itself
-            'offset': cmd_offset,
-            'range': cmd_range,
+            'offset': offset,
+            'range': range(cmds_start, cmds_end),
             'cmds': [],
         }
 
-        while cmd_offset in cmd_range:
-            cmd = self._parse_cmd(data, cmd_offset)
-            self.dcd['cmds'].append(cmd)
-            cmd_offset += cmd['hdr'].length
+        offset = cmds_start
+        while offset < cmds_end:
+            cmd = self._parse_dcd_cmd(data, offset)
+            dcd['cmds'].append(cmd)
+            offset += cmd['hdr'].length
 
-    def _parse_cmd(self, data, offset):
+        return dcd
+
+    def _parse_dcd_cmd(self, data, offset):
         if self._verbose:
             print(f'@ {offset:#x}: CMD {data[offset:offset+Header.size].hex()}')
         hdr = Header(data, offset)
         if self._verbose:
             print(hdr)
 
+        assert hdr.tag in list(DCDCommand)
+
         cmd = {
             'hdr': hdr,
-
-            # The offset of the image data itself
-            'offset': cmd_offset,
-            'range': cmd_range,
+            'offset': offset,
+            'range': range(offset+Header.size, offset+hdr.length),
+            'commands': None,
         }
 
-        #if hdr.tag ==
+        # For every command except "NOP" parse the specified number of command 
+        # data structures based on the length
+        cmd_struct = DCD_COMMAND_TO_STRUCT[hdr.tag]
+        cmd_range = range(offset+hdr.size, offset+hdr.length, cmd_struct.size)
+        cmd['commands'] = [cmd_struct(data, off) for off in cmd_range]
 
+        return cmd
 
     def _parse_csf(self, data, offset):
         if self._verbose:
-            print(f'@ {offset:#x}: CSF {data[offset:offset+CSF.size].hex()}')
-        hdr = CSF(data, offset)
+            #print(f'@ {offset:#x}: CSF {data[offset:offset+CSF.size].hex()}')
+            print(f'@ {offset:#x}: CSF {data[offset:offset+Header.size].hex()}')
+        #hdr = CSF(data, offset)
+        hdr = Header(data, offset)
         if self._verbose:
             print(hdr)
 
-    def _parse_app(self, data):
+        csf = {
+            'hdr': hdr,
+            'offset': offset,
+            'range': range(offset+Header.size, offset+hdr.length),
+        }
+
+        return csf
+
+    def _parse_app(self, data, offset):
         # The application image itself should be included in the IVT length, but
         # unlike the i.MX Container "images" IVT application images don't appear
         # to have any header structures
-        app_offset = offset + (self.hdr.entry - self.hdr.addr)
+        app_start = offset + (self.boot_data.start - self.ivt.addr)
+        app_end = app_start + self.boot_data.length
 
-        if self.hdr.csf:
-            # The CSF exists so use the CSF start address as the end of the
-            # application
-            app_end = self.hdr.csf
-        else:
-            # The IVT header length doesn't appear to indicate the actual size
-            # of the IVT information itself OR the application length. The
-            # BOOT_DATA start and length appear to encompass the entire size of
-            # the boot information itself, so if there is no csf then use the
-            # boot_data.length to determine the end address of the application
+        # Adjust the application entry point
+        app_entry = offset + (self.ivt.entry - self.ivt.addr)
 
-            # BOOT_DATA start most likely comes before the IVT header itself
-            app_end = offset + self.boot_data.length - (self.hdr.addr - self.boot_data.start)
-
-        app_len = app_end - app_offset
         if self._verbose:
-            print(f'@ {app_offset:#x}: APPLICATION ({app_len:x}) {data[offset:offset+16].hex()}')
+            print(f'@ {app_start:#x}: APP ({self.boot_data.length:#x} bytes) ENTRY @ {app_entry:#x}: {data[app_entry:app_entry+16].hex(" ", 4)}...')
 
         # For some reason the BOOT_DATA.length sometimes exceeds the available
         # data
         if app_end > len(data):
-            print(f'WARNING: (@ {app_offset:#x}) Application length exceeds available data: {len(data):#x} ! >= {app_end:#x}')
+            print(f'WARNING: (@ {app_start:#x}) Application length exceeds available data: {len(data):#x} ! >= {app_end:#x}')
             app_end = len(data)
 
         app = {
-            'offset': app_offset,
-            'range': range(app_offset, app_end),
-            'data': data[app_offset:app_end],
+            'offset': app_start,
+            'entry': app_entry,
+            'range': range(app_start, app_end),
+            'data': data[app_start:app_end],
         }
 
         return app
+
 
 __all__ = [
     'iMXImageVectorTable',
