@@ -201,3 +201,8 @@ formatted results files.
 YAML or pickle files may contain malicious information and the function that
 re-reads the scan results loads type information from the file, only import scan
 results that you trust.
+
+# TODO
+- implement decoding of i.MX6 CSF entries
+- read large files in chunks (opening giant files takes a long time at the 
+  moment)
