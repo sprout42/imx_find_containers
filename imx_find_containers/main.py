@@ -11,8 +11,8 @@ def main():
             help='Path to search for i.MX containers in all binaries')
     parser.add_argument('--verbose', '-v', action='store_true',
             help='verbose debug/searching printouts')
-    parser.add_argument('--increment', '-i', default=4, type=int,
-            help='The amount to increment each address when searching for a container')
+    parser.add_argument('--increment', '-i', default=0x400,
+            help='The amount to increment each address when searching for a container (default: 0x400)')
     parser.add_argument('--include-image-contents', '-I', action='store_true',
             help='Include contents of identified containers in the scan results file (increases time it takes to save scan results)')
     parser.add_argument('--extract', '-e', action='store_true',
@@ -22,9 +22,12 @@ def main():
             help='Select if the scan results should be saved as a yaml or pickle')
     args = parser.parse_args()
 
+    if isinstance(args.increment, str):
+        args.increment = int(args.increment, 0)
+
     results = {}
     for item in utils.find_files(args.path):
-        print(f'Searching {item}')
+        print(f'Searching {filename} every {args.increment:#x} bytes')
         containers = find.scan_file(item, **vars(args))
         if containers:
             results[item] = containers
