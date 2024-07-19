@@ -88,12 +88,13 @@ def _path_to_filename(path):
 def container_save_images(container, prefix):
     if hasattr(container, 'images') and container.images is not None:
         for img in container.images:
+            print(list(img.keys()))
             if img['data'] is not None:
+                offset = img['offset']
                 if 'fileext' in img:
-                    imgfilename = f'{prefix}--{offset:X}.{img["fileext"]}'
+                    imgfilename = f'{prefix}-{offset:x}.{img["fileext"]}'
                 else:
-                    offset = img['offset']
-                    imgfilename = f'{prefix}-{offset:X}.bin'
+                    imgfilename = f'{prefix}-{offset:x}.bin'
 
                 # Handle writing out bytes or strings as determined by the 
                 # image type

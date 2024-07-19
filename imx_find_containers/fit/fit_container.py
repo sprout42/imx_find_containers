@@ -34,8 +34,8 @@ class FITContainer(Container):
         # Add the DTB and DTS contents as images with custom extensions to get
         # exports of the files.
         self.images = [
-            {'range': imgrange, 'fileext': f'dtb', 'data': dtb},
-            {'range': imgrange, 'fileext': f'dts', 'data': dts},
+            {'offset': offset, 'range': imgrange, 'fileext': f'dtb', 'data': dtb},
+            {'offset': offset, 'range': imgrange, 'fileext': f'dts', 'data': dts},
         ]
 
         # Now do standard image/addr mapping
